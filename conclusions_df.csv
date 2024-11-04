@@ -1,0 +1,4366 @@
+id,prefix,middle,suffix,prediction,manual_label,exact_match,chrf,bertscore,google_bleu
+0,"#include <bitset>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+constexpr int N = 2008, M = N << 2;
+char tab1[N][N], tab2[N][N];
+bool tab[N][N], bar[N], odw[M], possible = 1;
+vector<int> G[M], Q[M], kol, used_c, used_r;
+int colour[M];
+
+inline int row(int a) { // first N
+  return 2 * a;
+}
+
+inline int column(int b) { // following N
+  return 2 * N + 2 * b;
+}
+
+inline int make_negation(int a) { return a ^ 1; }
+
+inline void add_edge(int a, int b) {
+  G[a].push_back(b);
+  Q[b].push_back(a);
+}
+
+inline void add_or(int a, int b) {
+  add_edge(make_negation(a), b);
+  add_edge(make_negation(b), a);
+}
+
+inline void create_graph(int n) {
+  for (int i = 0; i < n; i++)
+    for (int j = 0; j < n; j++) {
+      int a = bar[i], b = bar[j], c = column(j), d = row(i);
+      if (tab[i][j] == 0) {
+        if (a && b) {
+          add_or(make_negation(c), d);
+          add_or(c, make_negation(d));
+        } else if (a) {
+          add_edge(c, make_negation(c));
+        } else if (b) {
+          add_edge(d, make_negation(d));
+        }
+      } else {
+        if (!a && !b) {
+          possible = 0;
+          return;
+        } else if (a && b) {
+          add_or(c, d);
+          add_or(make_negation(c), make_negation(d));
+        } else if (a) {
+          add_edge(make_negation(c), c);
+        } else {
+          add_edge(make_negation(d), d);
+        }
+      }
+    }
+}
+
+void dfs(int v) {
+  odw[v] = 1;
+  for (int i = 0; i < (int)G[v].size(); i++)
+    if (!odw[G[v][i]])
+      dfs(G[v][i]);
+  kol.push_back(v);
+}
+
+void scc(int v, int nr) {
+  colour[v] = nr;
+  for (int i = 0; i < (int)Q[v].size(); i++)
+    if (!colour[Q[v][i]])
+      scc(Q[v][i], nr);
+}
+
+inline void assign_values() {
+  int nr = 1;
+  for (int i = 0; i < M; i++)
+    if (!odw[i])
+      dfs(i);
+  while (!kol.empty()) {
+    int v = kol.back();
+    kol.pop_back();
+    if (!colour[v])
+      scc(v, nr++);
+  }
+}
+
+inline void output() {
+  cout << (int)used_c.size() + (int)used_r.size() << ""\n"";
+  for (int i = 0; i < (int)used_r.size(); i++)
+    cout << ""row "" << used_r[i] << ""\n"";
+  for (int i = 0; i < (int)used_c.size(); i++)
+    cout << ""col "" << used_c[i] << ""\n"";
+}
+
+inline void TWO_SAT(int n) {","
+  create_graph(n);
+  if (!possible) {
+    cout << ""-1\n"";
+    return;
+  }
+  assign_values();
+  for (int i = 0; i < n; i++)
+    if (colour[column(i)] == colour[make_negation(column(i))] ||
+        colour[row(i)] == colour[make_negation(row(i))]) {
+      cout << ""-1\n"";
+      return;
+    }
+  for (int i = 0; i < n; i++) {
+    if (colour[column(i)] >
+        colour[make_negation(column(i))]) // values[c(i)] = 1
+      used_c.push_back(i);
+  }
+  for (int i = 0; i < n; i++)
+    if (colour[row(i)] > colour[make_negation(row(i))]) // value[r(i)] = 1;
+      used_r.push_back(i);
+  output();
+","}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int n;
+  cin >> n;
+  for (int i = 0; i < n; i++)
+    cin >> tab1[i];
+  for (int i = 0; i < n; i++)
+    cin >> tab2[i];
+  for (int i = 0; i < n; i++)
+    for (int j = 0; j < n; j++)
+      if (tab1[i][j] != tab2[i][j])
+        tab[i][j] = 1;
+  string s;
+  cin >> s;
+  for (int i = 0; i < n; i++)
+    if (s[i] == '1')
+      bar[i] = 1;
+  TWO_SAT(n);
+  return 0;
+}
+","
+  create_graph(n);
+  assign_values();
+  for (int i = 0; i < M; i++)
+    if (colour[i] == colour[make_negation(i)]) {
+      possible = 0;
+      return;
+    }
+  for (int i = 0; i < M; i++)
+    if (colour[i] == 1)
+      used_c.push_back(i);
+    else
+      used_r.push_back(i);
+  if (possible)
+    output();
+  else
+    cout << ""0\n"";
+",0.0,0.0,43.6160060933585,0.794428288936615,0.38876889848812096
+1,"#include <iostream>
+#include <queue>
+#include <vector>
+
+using namespace std;
+
+inline pair<int, int> operator-(pair<int, int> &a, pair<int, int> b) {
+  return {a.first - b.first, a.second - b.second};
+}
+
+struct Droga {
+  int a, b, t, iter;
+};
+
+constexpr int N = 57, M = 507, INF = 2e9;
+pair<int, int> point[N];
+vector<pair<int, int>> G[M];
+vector<int> in[N], out[N];
+vector<int> odp;
+int koszt[M];
+priority_queue<pair<int, int>> kol;
+Droga tab[N];
+
+inline bool iloczyn(pair<int, int> a, pair<int, int> b) {
+  if (a.first * b.second - a.second * b.first > 0) // a na lewo od b
+    swap(a, b);
+  return a.first * b.first + a.second * b.second >= 0;
+}
+
+inline void make_graph(int n) {
+  for (int i = 1; i <= n; i++)
+    for (int j = 0; j < (int)in[i].size(); j++)
+      for (int k = 0; k < (int)out[i].size(); k++) {
+        int a = tab[in[i][j]].a, b = i, c = tab[out[i][k]].b;
+        if (iloczyn(point[b] - point[a], point[c] - point[b]))
+          G[tab[in[i][j]].iter].push_back(
+              {tab[out[i][k]].iter, tab[in[i][j]].t + tab[out[i][k]].t});
+      }
+}
+
+inline void dijkstra(int v, int t) {","
+  for (int i = 0; i < M; i++)
+    koszt[i] = INF;
+  koszt[M - 1] = t;
+  G[M - 1] = G[v];
+  kol.push({-t, M - 1});
+  while (!kol.empty()) {
+    int dl = -kol.top().first;
+    v = kol.top().second;
+    kol.pop();
+    if (koszt[v] < dl)
+      continue;
+    for (int i = 0; i < (int)G[v].size(); i++)
+      if (dl + G[v][i].second < koszt[G[v][i].first]) {
+        koszt[G[v][i].first] = dl + G[v][i].second;
+        kol.push({-koszt[G[v][i].first], G[v][i].first});
+      }
+  }
+","}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie();
+  int n, m, p;
+  cin >> n >> m >> p;
+  for (int i = 1; i <= n; i++)
+    cin >> point[i].first >> point[i].second;
+  for (int i = 1; i <= m; i++) {
+    int a, b, t;
+    cin >> a >> b >> t;
+    tab[i] = Droga{a, b, t, i};
+    in[b].push_back(i);
+    out[a].push_back(i);
+  }
+  make_graph(n);
+  int a, b, t = 0;
+  cin >> b;
+  for (int i = 1; i < p; i++) {
+    a = b;
+    cin >> b;
+    dijkstra(a, t);
+    t = koszt[b];
+    odp.push_back(koszt[b]);
+    if (koszt[b] == INF) {
+      cout << ""NIE\n"";
+      return 0;
+    }
+  }
+  for (int i = 0; i < (int)odp.size(); i++)
+    cout << odp[i] << ""\n"";
+  return 0;
+}
+","
+  for (int i = 1; i <= n; i++)
+    koszt[i] = INF;
+  koszt[v] = 0;
+  kol.push({0, v});
+  while (!kol.empty()) {
+    int v = kol.top().second;
+    kol.pop();
+    for (int i = 0; i < (int)G[v].size(); i++) {
+      int u = G[v][i].first, w = G[v][i].second;
+      if (koszt[u] > koszt[v] + w) {
+        koszt[u] = koszt[v] + w;
+        kol.push({-koszt[u], u});
+      }
+    }
+  }
+",0.6,0.0,58.676660921014715,0.9117041230201721,0.5458823529411765
+2,"#include <iostream>
+#include <set>
+#include <vector>
+
+using namespace std;
+
+constexpr int N = 2e5 + 7;
+vector<int> tab[N], gdzie[N];
+int pref[N], sum[N];
+
+inline int nxt(int r, int x) {
+  int i = 0;
+  while (i < (int)gdzie[r].size() && gdzie[r][i] <= x)
+    i++;
+  if (i >= (int)gdzie[r].size())
+    return -1;
+  return gdzie[r][i];
+}
+
+inline void add(int p, int q) {","
+  for (int i = p + 1; i <= q; i++)
+    for (int j = 0; j < (int)tab[i].size(); j++)
+      sum[tab[i][j]]++;
+","}
+
+inline void gasienica(int n, int q) {
+  for (int p = 0; p <= n; p++) {
+    for (int i = 0; i < (int)tab[p - 1].size(); i++) {
+      sum[tab[p - 1][i]]--;
+      if (sum[tab[p - 1][i]] < 1) {
+        int w = nxt(tab[p - 1][i], p - 1);
+        if (w == -1)
+          return;
+        add(q, w);
+        q = max(q, w);
+      }
+    }
+    pref[q - p + 1]++;
+    pref[n - p + 1]--;
+  }
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int n, m, s = 0;
+  cin >> n >> m;
+  for (int i = 0; i < m; i++) {
+    int a1, a2;
+    cin >> a1 >> a2;
+    tab[a1].push_back(i);
+    tab[a2].push_back(i);
+    gdzie[i].push_back(a1);
+    gdzie[i].push_back(a2);
+    s = max(s, min(a1, a2));
+  }
+  add(0, s);
+  gasienica(n, s);
+  for (int i = 1; i <= n; i++)
+    pref[i] += pref[i - 1];
+  for (int i = 0; i <= n; i++)
+    cout << pref[i] << "" "";
+  return 0;
+}
+","
+  int w = nxt(q, p);
+  if (w == -1)
+    return;
+  add(p, w);
+  q = max(q, w);
+",0.0,0.0,9.30652955210884,0.7816159725189209,0.0871559633027523
+3,"#include <bitset>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+constexpr int N = 2e5 + 1, M = 1e9 + 7;
+
+typedef long long int LL;
+
+bitset<N + 7> sieve;
+vector<LL> b;
+int licz[N + 7];
+
+inline void del(int x, int d) {
+  if (!licz[x])
+    return;
+  int s = licz[x];
+  licz[x] = 0;
+  while (x % d == 0)
+    x /= d;
+  licz[x] += s;
+}
+
+inline void compute_sieve() {","
+  for (LL i = 2; i <= N; i++)
+    if (!sieve[i]) {
+      for (LL j = i * i; j <= (LL)N; j += i) {
+        sieve[j] = 1;
+        del(j, i * i);
+      }
+    }
+","}
+
+inline LL f(LL x) { return x * (x - 1ll) / 2ll; }
+
+inline LL count_ways() {
+  LL ans = 0, sum = 0;
+  for (LL i = 2; i <= N; i++)
+    sum += i * licz[i];
+  ans = (LL)licz[1] * sum % M;
+  ans = (ans + f(licz[1])) % M;
+  for (LL i = 2; i <= N; i++) {
+    if (!licz[i])
+      continue;
+    LL sum_p = 0;
+    sum -= licz[i] * i;
+    for (LL j = 2 * i; j <= N; j += i)
+      sum_p += (LL)licz[j] * j;
+    ans = (ans + (sum_p / i) * licz[i] % M) % M;
+    ans = (ans + (sum - sum_p) * i % M * licz[i] % M) % M;
+    ans = (ans + f(licz[i])) % M;
+  }
+  return ans;
+}
+
+int main() {
+  int n;
+  cin >> n;
+  for (int i = 0; i < n; i++) {
+    int a;
+    cin >> a;
+    licz[a]++;
+  }
+  compute_sieve();
+  cout << count_ways() << ""\n"";
+}
+","
+  sieve.set();
+  sieve[0] = sieve[1] = 0;
+  for (int i = 2; i <= N; i++)
+    if (sieve[i]) {
+      b.push_back(i);
+      for (int j = i * i; j <= N; j += i)
+        sieve[j] = 0;
+    }
+}
+
+inline void compute_licz() {
+  for (int i = 0; i < b.size(); i++)
+    for (int j = b[i]; j <= N; j += b[i])
+      del(j, b[i]);
+",0.2,0.0,46.665458453921154,0.8118386268615723,0.32
+4,"#include <algorithm>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+struct Point {
+  int f, s, t;
+  friend inline bool operator<(const Point &a, const Point &b) {
+    return a.f <= b.f && a.s <= b.s && a.t <= b.t;
+  }
+};
+
+constexpr int N = 3e5 + 7, M = 3;
+vector<int> G[N];
+vector<Point> propositions;
+pair<int, int> dlugosc[N][3]; // first -> wrt, second -> vertex
+
+inline int NextInt() {
+  int c, res = 0;
+  do {
+    c = getchar_unlocked();
+  } while (!isdigit(c));
+  while (isdigit(c)) {
+    res = res * 10 + c - '0';
+    c = getchar_unlocked();
+  }
+  return res;
+}
+
+inline void push(int v, int p, int x) {
+  if (x >= dlugosc[v][0].first) {
+    dlugosc[v][2] = dlugosc[v][1];
+    dlugosc[v][1] = dlugosc[v][0];
+    dlugosc[v][0] = {x, p};
+  } else if (x >= dlugosc[v][1].first) {
+    dlugosc[v][2] = dlugosc[v][1];
+    dlugosc[v][1] = {x, p};
+  } else if (x >= dlugosc[v][2].first) {
+    dlugosc[v][2] = {x, p};
+  }
+}
+
+int dfs0(int v, int p) {
+  for (int i = 0; i < (int)G[v].size(); i++)
+    if (G[v][i] != p)
+      push(v, G[v][i], dfs0(G[v][i], v));
+  return dlugosc[v][0].first + 1;
+}
+
+void dfs1(int v, int p, int up) {
+  push(v, p, up);
+  for (int i = 0; i < (int)G[v][i]; i++)
+    if (G[v][i] != p) {
+      int w = dlugosc[v][0].first;
+      if (dlugosc[v][0].second == G[v][i])
+        w = dlugosc[v][1].first;
+      dfs1(G[v][i], v, max(up, w) + 1);
+    }
+}
+
+void dfs2(int v, int p) {
+  Point akt =
+      Point{dlugosc[v][0].first, dlugosc[v][1].first, dlugosc[v][2].first};
+  bool add = 1;
+  for (int i = 0; i < (int)propositions.size(); i++) {
+    if (propositions[i] < akt) {
+      swap(propositions[i], propositions.back());
+      propositions.pop_back();
+      i--;
+    } else if (akt < propositions[i])
+      add = 0;
+  }
+  if (add)
+    propositions.push_back(akt);
+  for (int i = 0; i < (int)G[v].size(); i++)
+    if (G[v][i] != p)
+      dfs2(G[v][i], p);
+}
+
+inline bool exists(int a, int b, int c) {
+  for (int i = 0; i < (int)propositions.size(); i++) {
+    Point akt = propositions[i];
+    if (akt.f + akt.s >= a && akt.f + akt.t >= b && akt.s + akt.t >= c) {
+      cout << ""TAK\n"";
+      return 0;
+    }
+  }
+  return 0;
+}
+
+int main() {
+  int n = NextInt(), q = NextInt();
+  for (int i = 1; i < n; i++) {","
+    int a = NextInt(), b = NextInt();
+    G[a].push_back(b);
+    G[b].push_back(a);
+  ","}
+  for (int i = 1; i <= n; i++)
+    dlugosc[i][0].second = i;
+  dfs0(1, 1);
+  dfs1(1, 1, 0);
+  dfs2(1, 1);
+  for (int i = 0; i < q; i++) {
+    int d[] = {NextInt(), NextInt(), NextInt()};
+    sort(d, d + M);
+    if (!exists(d[0], d[1], d[2]))
+      cout << ""NIE\n"";
+  }
+}
+","
+    int a = NextInt(), b = NextInt();
+    G[a].push_back(b);
+    G[b].push_back(a);
+  ",1.0,1.0,100.0,0.9999999403953552,1.0
+5,"#include <iostream>
+#include <queue>
+#include <vector>
+
+using namespace std;
+
+constexpr int N = 3e5 + 7;
+vector<int> G[N << 1], ans;
+queue<int> kol;
+int a[N << 1], dst[N << 1], last[N << 1];
+
+inline void add_edges(int v, int x) {
+  for (int i = 2; i * i <= x; i++)
+    if (x % i == 0) {
+      G[v].push_back(i);
+      G[i].push_back(v);
+      G[v].push_back(x / i);
+      G[x / i].push_back(v);
+      while (x % i == 0)
+        x /= i;
+    }
+  if (x != 1) {
+    G[v].push_back(x);
+    G[x].push_back(v);
+  }
+}
+
+inline void bfs(int v) {","
+  last[v] = v;
+  dst[v] = 1;
+  kol.push(v);
+  while (!kol.empty()) {
+    v = kol.front();
+    int d = dst[v];
+    kol.pop();
+    for (auto w : G[v])
+      if (!dst[w]) {
+        last[w] = v;
+        dst[w] = d + 1;
+        kol.push(w);
+      }
+  }
+","}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int n;
+  cin >> n;
+  for (int i = 1; i <= n; i++)
+    cin >> a[i + N];
+  for (int i = 1; i <= n; i++)
+    add_edges(i + N, a[i + N]);
+  int s, t;
+  cin >> s >> t;
+  s += N;
+  t += N;
+  bfs(t);
+  if (!dst[s]) {
+    cout << ""-1\n"";
+    return 0;
+  }
+  if (s == t) {
+    cout << ""1\n"" << s - N << ""\n"";
+    return 0;
+  }
+  do {
+    ans.push_back(s);
+    s = last[last[s]];
+  } while (s != t);
+  ans.push_back(t);
+  cout << (int)ans.size() << ""\n"";
+  for (auto v : ans)
+    cout << v - N << "" "";
+  cout << ""\n"";
+}
+","
+  while (!kol.empty())
+    kol.pop();
+  kol.push(v);
+  dst[v] = 1;
+  while (!kol.empty()) {
+    int v = kol.front();
+    kol.pop();
+    for (auto u : G[v])
+      if (!dst[u]) {
+        dst[u] = dst[v] + 1;
+        last[u] = v;
+        kol.push(u);
+      }
+  }
+",0.9,0.0,65.94087380731204,0.925723671913147,0.635678391959799
+6,"#include <algorithm>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+const int N = 507;
+vector<int> ans;
+int tab[N], n;
+pair<int, int> pos[N];
+
+inline int find_smallest(int a) {
+  int ix = n;
+  for (int i = n; i >= a; i--)
+    if (tab[ix] > tab[i])
+      ix = i;
+  return ix;
+}
+
+inline void operation(int x) {
+  swap(tab[x], tab[x + 1]);
+  swap(tab[x], tab[x + 2]);
+  ans.push_back(x);
+}
+
+inline void move(int a, int b) {
+  for (int i = b; i - 2 >= a; i -= 2) {
+    operation(i - 2);
+  }
+  if (tab[a] > tab[a + 1]) {
+    operation(a);
+    operation(a);
+  }
+}
+
+inline void print() {","
+  cout << ans.size() << ""\n"";
+  for (auto a : ans)
+    cout << a << "" "";
+  cout << ""\n"";
+","}
+
+inline int correct() {
+  for (int i = n; i; i--)
+    if (tab[i - 1] > tab[i])
+      return 0;
+  print();
+  return 1;
+}
+
+inline void solve() {
+  ans.erase(ans.begin(), ans.end());
+  int inv = 0;
+  cin >> n;
+  for (int i = 1; i <= n; i++) {
+    cin >> tab[i];
+    pos[i - 1] = {tab[i], i};
+  }
+  for (int i = 1; i <= n; i++)
+    for (int j = i + 1; j <= n; j++)
+      if (tab[i] > tab[j])
+        inv++;
+  sort(pos, pos + n);
+  if (inv & 1)
+    for (int i = 1; i < n; i++)
+      if (pos[i - 1].first == pos[i].first) {
+        swap(pos[i - 1].second, pos[i].second);
+        break;
+      }
+  for (int i = 0; i < n; i++)
+    tab[pos[i].second] = i + 1;
+  for (int i = 1; i <= n - 2; i++) {
+    int p = find_smallest(i);
+    move(i, p);
+    if (correct())
+      return;
+  }
+  cout << ""-1\n"";
+  return;
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int t;
+  cin >> t;
+  while (t--)
+    solve();
+  return 0;
+}
+","
+  cout << ans.size() << '\n';
+  for (int i = 0; i < ans.size(); i++)
+    cout << ans[i] <<'';
+  cout << '\n';
+",1.0,0.0,49.87230306611237,0.8549776077270508,0.3383838383838384
+7,"#include <bitset>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+constexpr int N = 10, P = 20, M = 1 << P;
+
+vector<int> G[N], visited;
+int ans[N], wlk[N], mask[N], sums[N], val[N], paths[M + 7], root[N];
+string tags;
+bitset<N> dlt;
+
+inline void input(int n) {
+  for (int i = 1; i < n; i++) {
+    int a, b;
+    cin >> a >> b;
+    G[a].push_back(b);
+    G[b].push_back(a);
+  }
+  cin >> tags;
+  tags = '$' + tags;
+  for (int i = 1; i <= n; i++)
+    val[i] = (1 << (tags[i] - 'a'));
+}
+
+int dfs0(int v, int p) {
+  wlk[v] = 1;
+  visited.push_back(v);
+  for (auto w : G[v])
+    if (w != p && !dlt[w])
+      wlk[v] += dfs0(w, v);
+  return wlk[v];
+}
+
+void dfs1(int v, int p, int hsh) {
+  mask[v] = hsh ^ val[v];
+  for (auto w : G[v])
+    if (w != p && !dlt[w])
+      dfs1(w, v, mask[v]);
+}
+
+void dfs2(int v, int p) {
+  for (auto w : G[v])
+    if (w != p && !dlt[w]) {
+      dfs2(w, v);
+      sums[v] += sums[w];
+    }
+  ans[v] += sums[v];
+}
+
+inline void process_path(int x, int b, int mult) {
+  int in_root = 0;
+  for (auto v : visited)
+    paths[mask[v] | b]++;
+  for (auto v : visited) {
+    int w = (mask[v] ^ val[x]) | b;
+    sums[v] += paths[w] * mult;
+    in_root += paths[w] * mult;
+  }
+  for (auto v : visited)
+    paths[mask[v] | b] = 0;
+  root[x] -= in_root;
+  return;
+}
+
+inline int in(int V, int p) {
+  if (p)
+    return p;
+  return V;
+}
+
+inline void process_paths(int V, int p, int mult) {
+  dfs1(V, p, val[p]);
+  for (int b = 0; b < P; b++)
+    process_path(in(V, p), 1 << b, mult);
+  process_path(in(V, p), 0, -(P - 1) * mult);
+  dfs2(V, p);
+  root[p] += sums[V];
+  for (auto v : visited)
+    sums[v] = 0;
+}
+
+inline void centroids(int v, int p) {","
+  int V = v;
+  visited.erase(visited.begin(), visited.end());
+  dfs0(v, v);
+  if (p) // no need to decrease ans in our first iteration
+    process_paths(v, p, -1);
+  for (auto w : visited)
+    if (2 * wlk[w] >= wlk[v] && wlk[w] < wlk[V])
+      V = w;
+  process_paths(V, 0, 1);
+  dlt[V] = 1;
+  for (auto w : G[V])
+    if (!dlt[w])
+      centroids(w, V);
+","}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int n;
+  cin >> n;
+  input(n);
+  centroids(1, 0);
+  for (int i = 1; i <= n; i++)
+    cout << ans[i] + root[i] / 2 << "" "";
+  cout << ""\n"";
+  return 0;
+}
+","
+  int V = dfs0(v, p);
+  int c = v;
+  for (auto w : G[v])
+    if (w!= p &&!dlt[w] && wlk[w] > V / 2)
+      c = centroids(w, v);
+  dlt[c] = 1;
+  process_paths(c, p, 1);
+  for (auto w : G[c])
+    if (!dlt[w])
+      centroids(w, c);
+  process_paths(c, p, -1);
+",0.0,0.0,43.6189838610963,0.8065453171730042,0.4794007490636704
+8,"#include <algorithm>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+struct Edge {
+  int v1, v2, cost;
+  friend inline bool operator<(const Edge &a, const Edge &b) {
+    return a.cost < b.cost;
+  }
+};
+
+constexpr LL N = 2e5 + 7, M = 998244353;
+vector<Edge> G;
+int par[N], height[N], tree_size[N];
+
+inline LL fast_powering(LL n, LL k) {","
+  LL ans = 1;
+  while (k) {
+    if (k & 1)
+      ans = n * ans % M;
+    n = n * n % M;
+    k >>= 1;
+  }
+  return ans;
+","}
+
+inline int parent(int x) {
+  while (x != par[x])
+    x = par[x];
+  return x;
+}
+
+LL merge(int v1, int v2, LL w, LL S) {
+  int x = parent(v1), y = parent(v2);
+  if (x == y || S - w + 1 == 0)
+    return 1;
+  LL ans = fast_powering(max(0ll, S - w + 1),
+                         (LL)tree_size[x] * (LL)tree_size[y] - 1ll);
+  if (height[x] < height[y]) // We're adding the y-subtree to the x-subtree
+    swap(x, y);
+  height[x] = max(height[x], height[y] + 1);
+  tree_size[x] += tree_size[y];
+  par[y] = x;
+  return ans;
+}
+
+inline void solve() {
+  int n;
+  LL ans = 1, S;
+  cin >> n >> S;
+  G.resize(n - 1);
+  for (int i = 1; i <= n; i++) {
+    par[i] = i;
+    tree_size[i] = height[i] = 1;
+  }
+  for (int i = 1; i < n; i++) {
+    int v1, v2, w;
+    cin >> v1 >> v2 >> w;
+    G[i - 1] = Edge{v1, v2, w};
+  }
+  sort(G.begin(), G.end());
+  for (Edge E : G) {
+    int v1 = E.v1, v2 = E.v2;
+    LL w = E.cost;
+    ans = ans * merge(v1, v2, w, S) % M;
+  }
+  cout << ans << ""\n"";
+  return;
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int t;
+  cin >> t;
+  while (t--)
+    solve();
+  return 0;
+}
+","
+  LL ans = 1;
+  while (k) {
+    if (k & 1)
+      ans = ans * n % M;
+    n = n * n % M;
+    k >>= 1;
+  }
+  return ans;
+",1.0,0.0,89.28735363638006,0.9876623749732971,0.9074074074074074
+9,"#include <iostream>
+#include <queue>
+#include <vector>
+
+using namespace std;
+
+const int N = 1507;
+vector<int> G[N], W[N];
+queue<int> kol;
+int d[N];
+
+inline void bfs() {
+  kol.push(1);
+  d[1] = 1;
+  while (!kol.empty()) {
+    int v = kol.front();
+    kol.pop();
+    for (auto w : G[v])
+      if (!d[w]) {
+        d[w] = d[v] + 1;
+        kol.push(w);
+      }
+  }
+}
+
+inline void clear(int n) {","
+  for (int i = 1; i <= n; i++) {
+    d[i] = 0;
+    W[i].erase(W[i].begin(), W[i].end());
+    G[i].erase(G[i].begin(), G[i].end());
+  }
+","}
+
+inline void solve() {
+  int n, m, max_d = 0;
+  cin >> n >> m;
+  clear(n);
+  for (int i = 0; i < m; i++) {
+    int a, b;
+    cin >> a >> b;
+    G[b].push_back(a);
+  }
+  bfs();
+  int ans = 0;
+  for (int i = 1; i <= n; i++) {
+    if (!d[i]) {
+      cout << ""INFINITE\n"";
+      return;
+    }
+    ans += d[i];
+    max_d = max(max_d, d[i]);
+    W[d[i]].push_back(i);
+  }
+  cout << ""FINITE\n"" << ans << ""\n"";
+  for (auto w : W[max_d])
+    cout << w << "" "";
+  for (int i = 1; i < max_d; i++)
+    for (int j = max_d - i; j <= max_d; j++)
+      for (auto w : W[j])
+        cout << w << "" "";
+  cout << ""\n"";
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int t;
+  cin >> t;
+  while (t--)
+    solve();
+  return 0;
+}
+","
+  for (int i = 1; i <= n; i++) {
+    G[i].clear();
+    W[i].clear();
+  }
+",0.75,0.0,31.103998538665884,0.9341527819633484,0.3509933774834437
+10,"// https://codeforces.com/problemset/problem/1801/D
+#include <iostream>
+#include <queue>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+struct Path {
+  int goal, best;
+  LL nr_perf, money;
+  friend inline bool operator<(const Path &a, const Path &b) {
+    if (a.nr_perf != b.nr_perf)
+      return a.nr_perf > b.nr_perf;
+    return a.money < b.money;
+  };
+};
+
+constexpr LL N = 807, INF = 1e18;
+vector<pair<int, LL>> G[N];
+pair<LL, LL> dp[N][N]; // {number of performances, money}
+priority_queue<Path> kol;
+LL prof[N];
+
+inline LL ceil(LL a, LL b) {","
+  if (a % b)
+    return a / b + 1ll;
+  return a / b;
+","}
+
+inline void dijkstra(int n, int p) {
+  for (int i = 1; i <= n; i++)
+    for (int best = 1; best <= n; best++)
+      dp[i][best] = {INF, 0};
+  dp[1][1] = {0, p};
+  kol.push({1, 1, 0, p});
+  while (!kol.empty()) {
+    int v = kol.top().goal, best = kol.top().best;
+    LL nr_perf = kol.top().nr_perf, m = kol.top().money;
+    kol.pop();
+    if (dp[v][best].first < nr_perf ||
+        (dp[v][best].first == nr_perf && dp[v][best].second > m))
+      continue;
+    if (prof[best] < prof[v])
+      best = v;
+    for (auto [w, cost] : G[v]) {
+      LL to_perf = ceil(max(0ll, cost - m), prof[best]),
+         akt_m = m - cost + to_perf * prof[best];
+      if (dp[w][best].first > nr_perf + to_perf ||
+          (dp[w][best].first == nr_perf + to_perf &&
+           dp[w][best].second < akt_m)) {
+        dp[w][best] = {nr_perf + to_perf, akt_m};
+        kol.push({w, best, (nr_perf + to_perf), akt_m});
+      }
+    }
+  }
+}
+
+inline void solve() {
+  int n, m, p;
+  cin >> n >> m >> p;
+  for (int i = 1; i <= n; i++) {
+    G[i].erase(G[i].begin(), G[i].end());
+    cin >> prof[i];
+  }
+  while (m--) {
+    int a, b, c;
+    cin >> a >> b >> c;
+    G[a].push_back({b, c});
+  }
+  dijkstra(n, p);
+  LL ans = INF;
+  for (int i = 1; i <= n; i++)
+    ans = min(ans, dp[n][i].first);
+  if (ans == INF)
+    ans = -1;
+  cout << ans << ""\n"";
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int t;
+  cin >> t;
+  while (t--)
+    solve();
+  return 0;
+}
+","
+  return (a + b - 1) / b;
+",0.0,0.0,21.19138758789919,0.8665773272514343,0.19696969696969696
+11,"// https://codeforces.com/problemset/problem/1237/F
+#include <bitset>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 3607, M = 998244353;
+
+bitset<N> col, row;
+LL dp_c[N][N], dp_r[N][N]; // for i pairs how many on range of j
+LL factorial[N], inverse[N], C, R;
+
+inline void count_dp(int n, bitset<N> used, LL dp[][N]) {
+  for (int i = 0; i <= n; i++)
+    dp[0][i] = 1;
+  for (int i = 1; i <= n; i++) {
+    for (int j = 1; j <= n; j++) {
+      dp[i][j] = dp[i][j - 1];
+      if (j > 1 && !used[j - 1] && !used[j])
+        dp[i][j] = (dp[i][j] + dp[i - 1][j - 2]) % M;
+    }
+  }
+}
+
+inline LL binomial(int n, int k) {","
+  return factorial[n] * inverse[k] % M * inverse[n - k] % M;
+","}
+
+inline LL count_ans(int h, int w, int r, int c) {
+  if (c - 2 * h < w || r - 2 * w < h)
+    return 0;
+  LL ans = factorial[h] * factorial[w] % M;
+  ans = ans * dp_c[h][c + C] % M * dp_r[w][r + R] % M;
+  ans = ans * binomial(c - 2 * h, w) % M * binomial(r - 2 * w, h) % M;
+  return ans;
+}
+
+inline LL fast_powering(LL x, LL n) {
+  LL ans = 1;
+  while (n) {
+    if (n & 1)
+      ans = ans * x % M;
+    x = x * x % M;
+    n >>= 1;
+  }
+  return ans;
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int h, w, n;
+  LL ans = 0;
+  cin >> h >> w >> n;
+  factorial[0] = 1;
+  inverse[0] = 1;
+  for (int i = 0; i < 2 * n; i++) {
+    int a, b;
+    cin >> a >> b;
+    if (!row[a])
+      R++;
+    if (!col[b])
+      C++;
+    row[a] = 1;
+    col[b] = 1;
+  }
+  for (LL i = 1; i < N; i++) {
+    factorial[i] = factorial[i - 1] * i % M;
+    inverse[i] = fast_powering(factorial[i], M - 2);
+  }
+  count_dp(w, col, dp_c);
+  count_dp(h, row, dp_r);
+  h -= R;
+  w -= C;
+  for (int r = 0; r <= h; r++)
+    for (int c = 0; c <= w; c++)
+      ans = (ans + count_ans(r, c, h, w)) % M;
+  cout << ans << ""\n"";
+  return 0;
+}
+
+/*
+5 7 2
+3 1 3 2
+4 4 4 5
+*/
+","
+  return factorial[n] * inverse[k] % M * inverse[n - k] % M;
+",1.0,1.0,100.0,1.0,1.0
+12,"#include <iostream>
+#include <vector>
+
+using namespace std;
+
+struct Vertex {
+  int wrt, left = -1, right = -1;
+};
+
+vector<int> tab, index, wlk;
+vector<Vertex> tree;
+
+inline void add(int x, int t) {","
+  int v = index[t - 1], h = wlk.size() - 1, sum = 0;
+  index[t] = tree.size();
+  while (h--) {
+    tree.push_back(tree[v]);
+    tree.back().wrt++;
+    if (x < wlk[h] + sum) {
+      tree.back().left = tree.size();
+      v = tree[v].left;
+    } else {
+      tree.back().right = tree.size();
+      v = tree[v].right;
+      sum += wlk[h];
+    }
+  }
+  tree.push_back(tree[v]);
+  tree.back().wrt++;
+","}
+
+inline void
+create_tree() { // for very big max of tab[], different way should be used
+  index[0] = 1;
+  tree.push_back({0, -1, -1});
+  tree.push_back({0, -1, -1});
+  for (int i = 1; i < wlk.back(); i++) {
+    tree[i] = {0, 2 * i, 2 * i + 1};
+    tree.push_back({0, -1, -1});
+    tree.push_back({0, -1, -1});
+  }
+}
+
+inline int read(int a, int b, int k) {
+  if (k > b - a + 1) {
+    cout << ""Too few elements "";
+    return -1;
+  }
+  a = index[a - 1];
+  b = index[b];
+  int h = wlk.size() - 1, v = 1;
+  while (h--) {
+    int w1 = tree[a].left, w2 = tree[b].left;
+    v *= 2;
+    if (tree[w2].wrt - tree[w1].wrt >= k) { // go left
+      a = w1;
+      b = w2;
+    } else {
+      k -= tree[w2].wrt - tree[w1].wrt;
+      a = tree[a].right;
+      b = tree[b].right;
+      v++;
+    }
+  }
+  return v - wlk.back();
+}
+
+inline void ask_questions() {
+  int q;
+  cin >> q;
+  while (q--) {
+    int a, b, c;
+    cin >> a >> b >> c;
+    cout << read(a, b, c) << ""\n"";
+  }
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int n, m = 0;
+  cin >> n;
+  tab.resize(n + 7, 0);
+  index.resize(n + 7, 0);
+  wlk.push_back(1);
+  for (int i = 1; i <= n; i++) {
+    cin >> tab[i];
+    m = max(m, tab[i]);
+  }
+  while (wlk.back() <= m)
+    wlk.push_back(wlk.back() * 2);
+  create_tree();
+  for (int i = 1; i <= n; i++)
+    add(tab[i], i);
+  ask_questions();
+  return 0;
+}
+","
+  int v = 1;
+  while (v < wlk.back()) {
+    int w1 = tree[v].left, w2 = tree[v].right;
+    if (tree[w1].wrt < x)
+      v = w2;
+    else
+      v = w1;
+  }
+  int w = tree[v].wrt;
+  tree[v].wrt = x;
+  index[w] = v;
+",0.1,0.0,27.14540938633237,0.8287633657455444,0.23452768729641693
+13,"// https://codeforces.com/problemset/problem/916/E
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 1e5 + 7, M = 19, Q = (1 << M);
+LL jump_poLLer[N][M], w[N], pre[N], post[N], level[N], n, preorder = 1,
+                                                          root = 1;
+LL tree[(Q << 1) + 7], tree2[(Q << 1) + 7];
+vector<LL> G[N];
+
+void dfs0(LL v, LL p) {
+  pre[v] = post[v] = preorder++;
+  jump_poLLer[v][0] = p;
+  level[v] = level[p] + 1;
+  for (auto u : G[v])
+    if (u != p) {
+      dfs0(u, v);
+      post[v] = post[u];
+    }
+  return;
+}
+
+inline void push(LL v, LL s) {
+  tree[s] += tree2[v] / 2;
+  tree2[s] += tree2[v] / 2;
+  return;
+}
+
+// (+, +) tree
+inline void add(LL v, LL p, LL q, LL a, LL b, LL x) {","
+  if (q < a || b < p)
+    return;
+  if (a <= p && q <= b) {
+    tree[v] += (q - p + 1) * x;
+    tree2[v] += (q - p + 1) * x;
+  } else {
+    LL s = (p + q) / 2;
+    push(v, 2 * v);
+    push(v, 2 * v + 1);
+    tree2[v] = 0;
+
+    add(2 * v, p, s, a, b, x);
+    add(2 * v + 1, s + 1, q, a, b, x);
+    tree[v] = tree[2 * v] + tree[2 * v + 1];
+  }
+","}
+
+inline LL read(LL v, LL p, LL q, LL a, LL b) {
+  if (q < a || b < p)
+    return 0;
+  if (a <= p && q <= b)
+    return tree[v];
+  LL s = (p + q) / 2;
+  push(v, 2 * v);
+  push(v, 2 * v + 1);
+  tree2[v] = 0;
+
+  return read(2 * v, p, s, a, b) + read(2 * v + 1, s + 1, q, a, b);
+}
+
+inline LL LCA(LL a, LL b) {
+  if (level[a] < level[b])
+    swap(a, b);
+  for (LL i = M - 1; i >= 0; i--)
+    if (level[jump_poLLer[a][i]] >= level[b])
+      a = jump_poLLer[a][i];
+  if (a == b)
+    return a;
+  for (LL i = M - 1; i >= 0; i--)
+    if (jump_poLLer[a][i] != jump_poLLer[b][i]) {
+      a = jump_poLLer[a][i];
+      b = jump_poLLer[b][i];
+    }
+  return jump_poLLer[a][0];
+}
+
+inline LL find_kth_vertex(LL v, LL k) {
+  for (LL i = M - 1; i >= 0; i--)
+    if (level[v] - level[jump_poLLer[v][i]] <= k) {
+      k -= level[v] - level[jump_poLLer[v][i]];
+      v = jump_poLLer[v][i];
+    }
+  return v;
+}
+
+inline void ask_question() {
+  LL t, a;
+  cin >> t >> a;
+  if (t == 1)
+    root = a;
+  else if (t == 2) {
+    LL b, c;
+    cin >> b >> c;
+    LL v = LCA(a, b) ^ LCA(a, root) ^ LCA(root, b);
+    if (LCA(v, root) == v) {
+      add(1, 0, Q - 1, pre[1], post[1], c);
+      if (v != root) {
+        v = find_kth_vertex(root, level[root] - level[v] - 1);
+        add(1, 0, Q - 1, pre[v], post[v], -c);
+      }
+    } else
+      add(1, 0, Q - 1, pre[v], post[v], c);
+  } else {
+    LL ans, v = a;
+    if (LCA(v, root) == v) {
+      ans = read(1, 0, Q - 1, pre[1], post[1]);
+      if (v != root) {
+        v = find_kth_vertex(root, level[root] - level[v] - 1);
+        ans -= read(1, 0, Q - 1, pre[v], post[v]);
+      }
+    } else
+      ans = read(1, 0, Q - 1, pre[v], post[v]);
+    cout << ans << ""\n"";
+  }
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  LL q;
+  cin >> n >> q;
+  for (LL i = 1; i <= n; i++)
+    cin >> w[i];
+  for (LL i = 1; i < n; i++) {
+    LL a, b;
+    cin >> a >> b;
+    G[a].push_back(b);
+    G[b].push_back(a);
+  }
+  dfs0(1, 1);
+  for (LL j = 1; j < M; j++)
+    for (LL i = 1; i <= n; i++)
+      jump_poLLer[i][j] = jump_poLLer[jump_poLLer[i][j - 1]][j - 1];
+  for (LL i = 1; i <= n; i++)
+    add(1, 0, Q - 1, pre[i], pre[i], w[i]);
+  while (q--)
+    ask_question();
+}
+
+/* 6 7
+1 4 2 8 5 7
+1 2
+3 1
+4 3
+4 5
+3 6
+3 1
+2 4 6 3
+3 4
+1 6
+2 2 4 -5
+1 4
+3 3*/
+","
+  if (a <= p && q <= b) {
+    tree2[v] += x;
+    return;
+  }
+  LL s = (p + q) / 2;
+  push(v, 2 * v);
+  push(v, 2 * v + 1);
+  tree2[v] = 0;
+  if (a <= s)
+    add(2 * v, p, s, a, b, x);
+  if (b > s)
+    add(2 * v + 1, s + 1, q, a, b, x);
+  return;
+",0.0,0.0,61.317930709890064,0.8188042044639587,0.5930599369085173
+14,"#include <iostream>
+#include <vector>
+
+using namespace std;
+
+using MyInt = int32_t;
+
+const MyInt D = 11;
+
+MyInt find(MyInt x, vector<MyInt> &parents) {","
+  if (parents[x] != x)
+    parents[x] = find(parents[x], parents);
+  return parents[x];
+","}
+
+inline void make_union(MyInt x, MyInt y, vector<MyInt> &parents) {
+  x = find(x, parents);
+  y = find(y, parents);
+  parents[x] = y;
+}
+
+inline MyInt number_of_connected_components(vector<MyInt> &parents) {
+  MyInt ans = 0;
+  for (size_t i = 1; i < parents.size(); i++)
+    if (parents[i] == (MyInt)i)
+      ans++;
+  return ans;
+}
+
+inline void solve() {
+  MyInt n, m;
+  cin >> n >> m;
+
+  vector<MyInt> connects[D];
+  for (auto i = 1; i < D; i++)
+    connects[i].resize(n + 1);
+
+  while (m--) {
+    MyInt a, d, k;
+    cin >> a >> d >> k;
+    connects[d][a]++;
+    connects[d][a + k * d]--;
+  }
+
+  vector<MyInt> parents(n + 1);
+  for (auto i = 1; i <= n; i++)
+    parents[i] = i;
+
+  for (auto d = 1; d < D; d++)
+    for (auto i = 1; i <= n; i++) {
+      if (i + d <= n)
+        connects[d][i + d] += connects[d][i];
+      if (connects[d][i])
+        make_union(i, i + d, parents);
+    }
+  cout << number_of_connected_components(parents) << ""\n"";
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  MyInt t;
+  cin >> t;
+  while (t--)
+    solve();
+  return 0;
+}
+","
+  if (parents[x] == x)
+    return x;
+  return parents[x] = find(parents[x], parents);
+",1.0,0.0,79.05195728531625,0.955256462097168,0.7372881355932204
+15,"#include <iostream>
+#include <vector>
+
+using namespace std;
+
+using MyInt = int32_t;
+
+const MyInt D = 11;
+
+MyInt find(MyInt x, vector<MyInt> &parents) {
+  if (parents[x] != x)
+    parents[x] = find(parents[x], parents);
+  return parents[x];
+}
+
+inline void make_union(MyInt x, MyInt y, vector<MyInt> &parents) {","
+  x = find(x, parents);
+  y = find(y, parents);
+  parents[x] = y;
+","}
+
+inline MyInt number_of_connected_components(vector<MyInt> &parents) {
+  MyInt ans = 0;
+  for (size_t i = 1; i < parents.size(); i++)
+    if (parents[i] == (MyInt)i)
+      ans++;
+  return ans;
+}
+
+inline void solve() {
+  MyInt n, m;
+  cin >> n >> m;
+
+  vector<MyInt> connects[D];
+  for (auto i = 1; i < D; i++)
+    connects[i].resize(n + 1);
+
+  while (m--) {
+    MyInt a, d, k;
+    cin >> a >> d >> k;
+    connects[d][a]++;
+    connects[d][a + k * d]--;
+  }
+
+  vector<MyInt> parents(n + 1);
+  for (auto i = 1; i <= n; i++)
+    parents[i] = i;
+
+  for (auto d = 1; d < D; d++)
+    for (auto i = 1; i <= n; i++) {
+      if (i + d <= n)
+        connects[d][i + d] += connects[d][i];
+      if (connects[d][i])
+        make_union(i, i + d, parents);
+    }
+  cout << number_of_connected_components(parents) << ""\n"";
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  MyInt t;
+  cin >> t;
+  while (t--)
+    solve();
+  return 0;
+}
+","
+  MyInt x_root = find(x, parents);
+  MyInt y_root = find(y, parents);
+  if (x_root!= y_root)
+    parents[x_root] = y_root;
+",1.0,0.0,65.64484267227292,0.7930400371551514,0.37640449438202245
+16,"#include <iostream>
+#include <vector>
+
+using namespace std;
+
+using MyInt = int32_t;
+
+const MyInt D = 11;
+
+MyInt find(MyInt x, vector<MyInt> &parents) {
+  if (parents[x] != x)
+    parents[x] = find(parents[x], parents);
+  return parents[x];
+}
+
+inline void make_union(MyInt x, MyInt y, vector<MyInt> &parents) {
+  x = find(x, parents);
+  y = find(y, parents);
+  parents[x] = y;
+}
+
+inline MyInt number_of_connected_components(vector<MyInt> &parents) {","
+  MyInt ans = 0;
+  for (size_t i = 1; i < parents.size(); i++)
+    if (parents[i] == (MyInt)i)
+      ans++;
+  return ans;
+","}
+
+inline void solve() {
+  MyInt n, m;
+  cin >> n >> m;
+
+  vector<MyInt> connects[D];
+  for (auto i = 1; i < D; i++)
+    connects[i].resize(n + 1);
+
+  while (m--) {
+    MyInt a, d, k;
+    cin >> a >> d >> k;
+    connects[d][a]++;
+    connects[d][a + k * d]--;
+  }
+
+  vector<MyInt> parents(n + 1);
+  for (auto i = 1; i <= n; i++)
+    parents[i] = i;
+
+  for (auto d = 1; d < D; d++)
+    for (auto i = 1; i <= n; i++) {
+      if (i + d <= n)
+        connects[d][i + d] += connects[d][i];
+      if (connects[d][i])
+        make_union(i, i + d, parents);
+    }
+  cout << number_of_connected_components(parents) << ""\n"";
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  MyInt t;
+  cin >> t;
+  while (t--)
+    solve();
+  return 0;
+}
+","
+  MyInt res = 0;
+  for (auto i = 1; i <= n; i++)
+    if (find(i, parents) == i)
+      res++;
+  return res;
+",0.9,0.0,40.297609103583795,0.9041747450828552,0.42696629213483145
+17,"// https://codeforces.com/gym/104013/problem/E
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <map>
+#include <vector>
+
+using namespace std;
+
+struct Not_added {
+  int a, b, t;
+};
+
+constexpr int N = 2e5 + 7;
+
+vector<pair<int, int>> G[N];
+vector<Not_added> to_add;
+vector<int> keys, order;
+pair<int, int> E[N];
+map<int, int> val;
+int key[N], in[N];
+bool w[N], odw[N];
+
+inline int input(int n) {
+  for (int i = 0; i < n; i++)
+    cin >> E[i].first >> E[i].second >> w[i];
+  for (int i = 0; i < n; i++) {
+    keys.push_back(E[i].first);
+    keys.push_back(E[i].second);
+  }
+  sort(keys.begin(), keys.end());
+  int cnt = 0;
+  for (int i = 0; i < (int)keys.size(); i++)
+    if (key[cnt] != keys[i]) {
+      key[++cnt] = keys[i];
+      val[keys[i]] = cnt;
+    }
+  for (int i = 0; i < n; i++)
+    E[i] = {val[E[i].first], val[E[i].second]};
+  for (int i = 0; i < n; i++) {
+    if (w[i])
+      G[E[i].first].push_back({E[i].second, i});
+    else
+      to_add.push_back(Not_added{E[i].first, E[i].second, i});
+  }
+  return cnt;
+}
+
+void dfs0(int v, int last_E) {
+  while (!G[v].empty()) {
+    pair<int, int> u = G[v][0];
+    odw[u.second] = 1;
+    swap(G[v][0], G[v].back());
+    G[v].pop_back();
+    dfs0(u.first, u.second);
+  }
+  order.push_back(last_E);
+}
+
+inline bool find_euclidean_path(int v, int n, int m) {","
+  for (int i = 1; i <= n; i++)
+    for (auto u : G[i])
+      in[u.first]++;
+  int cnt1 = 0, cnt2 = 0;
+  for (int i = 1; i <= n; i++)
+    if (in[i] != (int)G[i].size()) {
+      if (abs(in[i] - (int)G[i].size()) > 1)
+        return 0;
+      cnt1 += in[i] - G[i].size();
+      cnt2++;
+    }
+  if (cnt1 || (cnt2 != 0 && cnt2 != 2))
+    return 0;
+  dfs0(v, 0);
+  order.pop_back();
+  for (int i = 0; i < m; i++)
+    if (!odw[i] && w[i])
+      return 0;
+  return 1;
+","}
+
+inline bool create_order(int n, int v) {
+  if (to_add.empty())
+    return 1;
+  if (order.size() == 0) {
+    for (auto u : to_add) {
+      if (u.a == v)
+        return 0;
+      order.push_back(u.t);
+    }
+    return 1;
+  }
+  vector<int> pom = order;
+  order.erase(order.begin(), order.end());
+  for (int i = 0; i < (int)to_add.size(); i++) {
+    int a = to_add[i].a, t = to_add[i].t;
+    if (a == E[pom[0]].second)
+      continue;
+    order.push_back(t);
+    swap(to_add.back(), to_add[i]);
+    to_add.pop_back();
+    i--;
+  }
+  int i = 0;
+  order.push_back(pom[i++]);
+  while (i < (int)pom.size() && E[pom[i - 1]].second == E[pom[i]].second)
+    order.push_back(pom[i++]);
+  if (E[pom[0]].second == v && i >= (int)pom.size())
+    return 0;
+  while (!to_add.empty()) {
+    order.push_back(to_add.back().t);
+    to_add.pop_back();
+  }
+  while (i < (int)pom.size())
+    order.push_back(pom[i++]);
+  return 1;
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int n, c;
+  cin >> n >> c;
+  keys.push_back(c);
+  int wlk = input(n);
+  c = val[c];
+  if (!find_euclidean_path(c, wlk, n) || !create_order(wlk, c)) {
+    cout << ""No\n"";
+    return 0;
+  }
+  cout << ""Yes\n"";
+  for (int i = n - 1; i >= 0; i--)
+    cout << order[i] + 1 << "" "";
+  cout << ""\n"";
+  return 0;
+}
+","
+  for (int i = 0; i < n; i++)
+    in[i] = 0;
+  for (int i = 0; i < n; i++)
+    for (auto u : G[i])
+      in[u.first]++;
+  for (int i = 0; i < n; i++)
+    if (in[i] == 0)
+      dfs0(i, i);
+  for (int i = 0; i < n; i++)
+    if (in[i] == 0)
+      return 0;
+  for (int i = 0; i < n; i++)
+    if (odw[i])
+      return 0;
+  return 1;
+",0.0,0.0,45.36883237294329,0.9009640216827393,0.4523809523809524
+18,"// https://codeforces.com/contest/1728/problem/E
+#include <algorithm>
+#include <iostream>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 3e5 + 7;
+LL Ta[N], Tb[N], d[N], tab[N];
+
+inline LL NextLL() {
+  LL c;
+  cin >> c;
+  return c;
+}
+
+inline LL extended_gcd(LL a, LL b, LL *x, LL *y) { // return gcd","
+  if (!a) {
+    *x = 0;
+    *y = 1;
+    return b;
+  }
+  LL x1, y1, gcd = extended_gcd(b % a, a, &x1, &y1);
+  *x = y1 - (b / a) * x1;
+  *y = x1;
+  return gcd;
+","}
+
+inline void solve(LL n, LL mx) {
+  LL b = NextLL(), a = NextLL(), x, y, gcd = extended_gcd(a, b, &x, &y),
+     lcm = a / gcd * b;
+  x = (a * x * n / gcd);
+  x = ((x % lcm) + lcm) % lcm;
+  if (n % gcd || x > n) {
+    cout << ""-1\n"";
+    return;
+  }
+  LL jumps = (mx - x) / lcm, ans = tab[x + lcm * jumps];
+  if (x + lcm * (jumps + 1) <= n)
+    ans = max(ans, tab[x + lcm * (jumps + 1)]);
+  cout << ans << ""\n"";
+  return;
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  LL n = NextLL(), mx = 0;
+  for (LL i = 0; i < n; i++) {
+    Ta[i] = NextLL();
+    Tb[i] = NextLL();
+    d[i] = Tb[i] - Ta[i];
+  }
+  for (LL i = 0; i < n; i++)
+    tab[0] += Ta[i];
+  sort(d, d + n, greater<LL>());
+  for (LL i = 1; i <= n; i++) {
+    tab[i] = tab[i - 1] + d[i - 1];
+    if (tab[mx] < tab[i])
+      mx = i;
+  }
+  LL q;
+  cin >> q;
+  while (q--)
+    solve(n, mx);
+  return 0;
+}
+","
+  if (a == 0) {
+    *x = 0;
+    *y = 1;
+    return b;
+  }
+  LL x1, y1;
+  LL d = extended_gcd(b % a, a, &x1, &y1);
+  *x = y1 - (b / a) * x1;
+  *y = x1;
+  return d;
+",1.0,0.0,86.34559117389392,0.9605991840362549,0.8308270676691729
+19,"#include <bits/stdc++.h>
+
+using namespace std;
+
+const long long int N = 10, M = 1e9;
+set<int> was, was1;
+
+long long int rand(long long int a, long long int b) {","
+  return a + rand() % (b - a + 1);
+","}
+
+int main(int argc, char *argv[]) {
+  srand(atoi(argv[1]));
+  long long int n = rand(1, N);
+  cout << n << ""\n"";
+  int licz = n;
+  while (licz) {
+    int a = rand(1, M);
+    auto it = was.find(a);
+    if (it == was.end()) {
+      was.insert(a);
+      licz--;
+    }
+  }
+  licz = n;
+  while (licz) {
+    int a = rand(1, M);
+    auto it = was.find(a), it1 = was1.find(a);
+    if (it == was.end() && it1 == was1.end()) {
+      was1.insert(a);
+      licz--;
+    }
+  }
+  for (auto it = was.begin(); it != was.end(); it++)
+    cout << *it << "" "";
+  cout << ""\n"";
+  for (auto it = was1.begin(); it != was1.end(); it++)
+    cout << *it << "" "";
+  cout << ""\n"";
+  return 0;
+}
+","
+  return rand() % (b - a + 1) + a;
+",1.0,0.0,74.45368471684262,0.9569870233535767,0.7777777777777778
+20,"// Task: https://codeforces.com/problemset/problem/2010/C2
+#include <cmath>
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+class Hash {
+private:
+  LL modulo;
+  vector<LL> hash_array;
+  vector<LL> powers;
+
+public:
+  Hash(string s, LL power, LL mod) {
+    hash_array = vector<LL>(s.size() + 1, 0);
+    powers = vector<LL>(s.size() + 1, 1);
+    this->modulo = mod;
+    calculate_hash(s, power);
+  }
+  bool are_two_suffixes_equal(int a, int b, int length) {","
+    if (a > b)
+      swap(a, b);
+    return get_suffix_hash(a, length) * powers[b - a] % modulo ==
+           get_suffix_hash(b, length);
+  ","}
+
+private:
+  LL get_suffix_hash(int a, int length) {
+    return (hash_array[a + length] - hash_array[a] + modulo) % modulo;
+  }
+  void calculate_hash(string s, LL power) {
+    for (int i = 1; i < (int)hash_array.size(); i++) {
+      powers[i] = powers[i - 1] * power % modulo;
+      hash_array[i] =
+          ((s[i - 1] - 'a') * powers[i] % modulo + hash_array[i - 1]) % modulo;
+    }
+  }
+};
+
+int main() {
+  string s;
+  cin >> s;
+  Hash hash1 = Hash(s, 31, 1e7 + 7), hash2 = Hash(s, 29, 1e7 + 9);
+  for (int i = s.size() / 2 + 1; i < (int)s.size(); i++)
+    if (hash1.are_two_suffixes_equal(0, s.size() - i, i) &&
+        hash2.are_two_suffixes_equal(0, s.size() - i, i)) {
+      cout << ""YES\n"" << s.substr(0, i) << ""\n"";
+      return 0;
+    }
+  cout << ""NO\n"";
+  return 0;
+}
+","
+    return get_suffix_hash(a, length) == get_suffix_hash(b, length);
+  ",0.1,0.0,63.252150786145876,0.9377438426017761,0.47191011235955055
+21,"// Task: https://codeforces.com/problemset/problem/2010/C2
+#include <cmath>
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+class Hash {
+private:
+  LL modulo;
+  vector<LL> hash_array;
+  vector<LL> powers;
+
+public:
+  Hash(string s, LL power, LL mod) {
+    hash_array = vector<LL>(s.size() + 1, 0);
+    powers = vector<LL>(s.size() + 1, 1);
+    this->modulo = mod;
+    calculate_hash(s, power);
+  }
+  bool are_two_suffixes_equal(int a, int b, int length) {
+    if (a > b)
+      swap(a, b);
+    return get_suffix_hash(a, length) * powers[b - a] % modulo ==
+           get_suffix_hash(b, length);
+  }
+
+private:
+  LL get_suffix_hash(int a, int length) {","
+    return (hash_array[a + length] - hash_array[a] + modulo) % modulo;
+  ","}
+  void calculate_hash(string s, LL power) {
+    for (int i = 1; i < (int)hash_array.size(); i++) {
+      powers[i] = powers[i - 1] * power % modulo;
+      hash_array[i] =
+          ((s[i - 1] - 'a') * powers[i] % modulo + hash_array[i - 1]) % modulo;
+    }
+  }
+};
+
+int main() {
+  string s;
+  cin >> s;
+  Hash hash1 = Hash(s, 31, 1e7 + 7), hash2 = Hash(s, 29, 1e7 + 9);
+  for (int i = s.size() / 2 + 1; i < (int)s.size(); i++)
+    if (hash1.are_two_suffixes_equal(0, s.size() - i, i) &&
+        hash2.are_two_suffixes_equal(0, s.size() - i, i)) {
+      cout << ""YES\n"" << s.substr(0, i) << ""\n"";
+      return 0;
+    }
+  cout << ""NO\n"";
+  return 0;
+}
+","
+    return (hash_array[a + length] - hash_array[a] + modulo) % modulo;
+  ",1.0,1.0,100.0,0.9999999403953552,1.0
+22,"// Task: https://codeforces.com/problemset/problem/2010/C2
+#include <cmath>
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+class Hash {
+private:
+  LL modulo;
+  vector<LL> hash_array;
+  vector<LL> powers;
+
+public:
+  Hash(string s, LL power, LL mod) {
+    hash_array = vector<LL>(s.size() + 1, 0);
+    powers = vector<LL>(s.size() + 1, 1);
+    this->modulo = mod;
+    calculate_hash(s, power);
+  }
+  bool are_two_suffixes_equal(int a, int b, int length) {
+    if (a > b)
+      swap(a, b);
+    return get_suffix_hash(a, length) * powers[b - a] % modulo ==
+           get_suffix_hash(b, length);
+  }
+
+private:
+  LL get_suffix_hash(int a, int length) {
+    return (hash_array[a + length] - hash_array[a] + modulo) % modulo;
+  }
+  void calculate_hash(string s, LL power) {","
+    for (int i = 1; i < (int)hash_array.size(); i++) {
+      powers[i] = powers[i - 1] * power % modulo;
+      hash_array[i] =
+          ((s[i - 1] - 'a') * powers[i] % modulo + hash_array[i - 1]) % modulo;
+    }
+  ","}
+};
+
+int main() {
+  string s;
+  cin >> s;
+  Hash hash1 = Hash(s, 31, 1e7 + 7), hash2 = Hash(s, 29, 1e7 + 9);
+  for (int i = s.size() / 2 + 1; i < (int)s.size(); i++)
+    if (hash1.are_two_suffixes_equal(0, s.size() - i, i) &&
+        hash2.are_two_suffixes_equal(0, s.size() - i, i)) {
+      cout << ""YES\n"" << s.substr(0, i) << ""\n"";
+      return 0;
+    }
+  cout << ""NO\n"";
+  return 0;
+}
+","
+    for (int i = 0; i < (int)s.size(); i++) {
+      hash_array[i + 1] = (hash_array[i] * power + s[i]) % modulo;
+      powers[i + 1] = (powers[i] * power) % modulo;
+    }
+  ",0.5,0.0,58.1289882987778,0.9118958115577698,0.535031847133758
+23,"#include <algorithm>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 1 << 18, INF = 2e9;
+LL tree[(N << 1) + 7], tree_push[(N << 1) + 7]; // drzewo (+, min)
+pair<LL, LL> purchase[N];
+vector<LL> wyn;
+
+inline int NextInt() {
+  int c, res = 0;
+  do {
+    c = getchar_unlocked();
+  } while (!isdigit(c));
+  while (isdigit(c)) {
+    res = res * 10 + c - '0';
+    c = getchar_unlocked();
+  }
+  return res;
+}
+
+inline void push(LL v) {
+  LL l = 2 * v, r = l + 1;
+  tree[l] += tree_push[v];
+  tree[r] += tree_push[v];
+  tree_push[l] += tree_push[v];
+  tree_push[r] += tree_push[v];
+  tree_push[v] = 0;
+}
+
+inline void add(LL v, LL a, LL b, LL p, LL k, LL x) { 
+  if (k < a || b < p)
+    return;
+  if (a <= p && k <= b) {
+    tree[v] += x;
+    tree_push[v] += x;
+  } else {
+    LL s = (p + k) / 2;
+    push(v);
+    add(2 * v, a, b, p, s, x);
+    add(2 * v + 1, a, b, s + 1, k, x);
+    tree[v] = min(tree[2 * v], tree[2 * v + 1]);
+  }
+}
+
+inline LL read(LL v, LL a, LL b, LL p, LL k) {","
+  if (k < a || b < p)
+    return INF;
+  if (a <= p && k <= b) {
+    return tree[v];
+  } else {
+    LL s = (p + k) / 2;
+    push(v);
+    return min(read(2 * v, a, b, p, s), read(2 * v + 1, a, b, s + 1, k));
+  }
+","}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int n = NextInt();
+  for (LL i = 0; i < n; i++)
+    add(1, i, n - 1, 0, N - 1, NextInt());
+  for (LL i = 0; i < n; i++)
+    purchase[i] = {NextInt(), i};
+  sort(purchase, purchase + n);
+  for (LL i = 0; i < n; i++) {
+    LL x = purchase[i].second, w = purchase[i].first;
+    if (read(1, x, n - 1, 0, N - 1) >= w) {
+      wyn.push_back(x + 1);
+      add(1, x, n - 1, 0, N - 1, -w);
+    }
+  }
+  sort(wyn.begin(), wyn.end());
+  cout << wyn.size() << ""\n"";
+  for (LL i = 0; i < (LL)wyn.size(); i++)
+    cout << wyn[i] << "" "";
+  cout << ""\n"";
+  return 0;
+}
+","
+  if (k < a || b < p)
+    return INF;
+  if (a <= p && k <= b)
+    return tree[v];
+  LL s = (p + k) / 2;
+  push(v);
+  return min(read(2 * v, a, b, p, s), read(2 * v + 1, a, b, s + 1, k));
+",1.0,0.0,90.8335974539296,0.9811570644378662,0.9116022099447514
+24,"#include <iostream>
+#include <vector>
+
+using namespace std;
+
+constexpr int N = 5e4 + 7;
+vector<int> G[N], akt, nxt;
+int wlk[N];
+bool odw[N];
+
+inline int NextInt() { //use getchar_unlocked()","
+  int c, res = 0;
+  do {
+    c = getchar_unlocked();
+  } while (!isdigit(c));
+  while (isdigit(c)) {
+    res = res * 10 + c - '0';
+    c = getchar_unlocked();
+  }
+  return res;
+","}
+
+int dfs0(int v, int p) {
+  wlk[v] = 1;
+  for (int i = 0; i < (int)G[v].size(); i++)
+    if (G[v][i] != p && !odw[G[v][i]])
+      wlk[v] += dfs0(G[v][i], v);
+  return wlk[v];
+}
+
+int dfs1(int v, int p, int rozm) {
+  int prop = 0, mks = rozm - wlk[v];
+  for (int i = 0; i < (int)G[v].size(); i++)
+    if (G[v][i] != p && !odw[G[v][i]])
+      mks = max(wlk[G[v][i]], mks);
+  if (2 * mks <= rozm)
+    return v;
+  for (int i = 0; i < (int)G[v].size(); i++)
+    if (G[v][i] != p && !odw[G[v][i]])
+      prop = max(prop, dfs1(G[v][i], v, rozm));
+  return prop;
+}
+
+int main() {
+  int n = NextInt(), level = 0;
+  nxt.push_back(1);
+  for (int i = 1; i < n; i++) {
+    int a = NextInt(), b = NextInt();
+    G[a].push_back(b);
+    G[b].push_back(a);
+  }
+  while (!nxt.empty()) {
+    akt = nxt;
+    nxt.erase(nxt.begin(), nxt.end());
+    while (!akt.empty()) {
+      int v = akt.back();
+      akt.pop_back();
+      dfs0(v, v);
+      int c = dfs1(v, v, wlk[v]);
+      odw[c] = 1;
+      for (int i = 0; i < (int)G[c].size(); i++)
+        if (!odw[G[c][i]])
+          nxt.push_back(G[c][i]);
+    }
+    level++;
+  }
+  cout << level << ""\n"";
+  return 0;
+}
+"," instead of cin.
+	int c = getchar_unlocked();
+	while (c < '0' || c > '9') c = getchar_unlocked();
+	int ret = 0;
+	while (c >= '0' && c <= '9') {
+		ret = 10 * ret + c - 48;
+		c = getchar_unlocked();
+	}
+	return ret;
+",1.0,0.0,52.98237853472928,0.8468531370162964,0.3706293706293706
+25,"#include <iostream>
+#include <queue>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 1 << 18, INF = 1e18;
+priority_queue<pair<LL, LL>> kol;
+LL tree[N << 1], tree2[N << 1];
+
+inline void push(LL l, LL r, LL v) {","
+  tree[l] += tree2[v];
+  tree[r] += tree2[v];
+  tree2[l] += tree2[v];
+  tree2[r] += tree2[v];
+  tree2[v] = 0;
+","}
+
+inline void add(LL v, LL p, LL q, LL a, LL b, LL x) { // a, b -> our goal
+  if (a <= p && q <= b) {
+    tree[v] += x;
+    tree2[v] += x;
+    return;
+  }
+  if (q < a || b < p)
+    return;
+  LL l = 2 * v, r = l + 1, s = (p + q) / 2;
+  push(l, r, v);
+  add(l, p, s, a, b, x);
+  add(r, s + 1, q, a, b, x);
+  tree[v] = min(tree[l], tree[r]);
+}
+
+inline LL read(LL v, LL p, LL q, LL a, LL b) {
+  if (a <= p && q <= b) {
+    return tree[v];
+  }
+  if (q < a || b < p)
+    return INF;
+  LL l = 2 * v, r = l + 1, s = (p + q) / 2;
+  push(l, r, v);
+  return min(read(l, p, s, a, b), read(r, s + 1, q, a, b));
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  LL n, ans = 0;
+  cin >> n;
+  for (LL i = 0; i < n; i++) {
+    LL t, c;
+    cin >> t >> c;
+    if (t == 0)
+      add(1, 0, N - 1, i, N - 1, c);
+    else {
+      if (c < 0) {
+        add(1, 0, N - 1, i, N - 1, -c);
+        ans++;
+      } else
+        kol.push({-c, i});
+    }
+  }
+  if (tree[1] < 0) {
+    cout << ""-1\n"";
+    return 0;
+  }
+  while (!kol.empty()) {
+    LL t = kol.top().second, x = kol.top().first;
+    kol.pop();
+    if (read(1, 0, N - 1, t, N - 1) >= -x) {
+      add(1, 0, N - 1, t, N - 1, x);
+      ans++;
+    }
+  }
+  cout << ans << ""\n"";
+  return 0;
+}
+","
+  if (tree2[v]!= 0) {
+    tree[v] += tree2[v];
+    if (l!= r) {
+      tree2[2 * v] += tree2[v];
+      tree2[2 * v + 1] += tree2[v];
+    }
+    tree2[v] = 0;
+  }
+",0.0,0.0,64.24634440114397,0.8399931192398071,0.48854961832061067
+26,"#include <iostream>
+#include <stack>
+
+using namespace std;
+
+struct Prostokat {
+  int x1, y1, x2, y2;
+};
+
+typedef long long int LL;
+
+constexpr int N = 2e3 + 7;
+int tab[N][N], odl[N][N];
+LL pref[N][N], akt_sum;
+stack<pair<int, int>> stos; // first -> wysokosc, second -> wspolrzedna Ox
+Prostokat wyn = {0, 0, 0, 0};
+
+inline LL pole(int x1, int y1, int x2, int y2) {","
+  return pref[x2][y2] + pref[x1 - 1][y1 - 1] - pref[x1 - 1][y2] -
+         pref[x2][y1 - 1];
+","}
+
+inline void zdejmij(int y, int x) {
+  while (!stos.empty() && stos.top().first >= odl[y][x]) {
+    int h1 = stos.top().first, x1 = stos.top().second;
+    stos.pop();
+    if (!stos.empty())
+      x1 = stos.top().second + 1;
+    else
+      x1 = 1;
+    LL akt = pole(y - h1 + 1, x1, y, x - 1);
+    if (akt > akt_sum) {
+      akt_sum = akt;
+      wyn = Prostokat{y - h1 + 1, x1, y, x - 1};
+    }
+  }
+}
+
+inline void devide(int k) {
+  while (pole(wyn.x1, wyn.y1, wyn.x2, wyn.y2) > 2 * k) {
+    if (wyn.x2 - wyn.x1) {
+      int x3 = (wyn.x1 + wyn.x2) / 2;
+      if (2 * pole(wyn.x1, wyn.y1, x3, wyn.y2) >=
+          pole(wyn.x1, wyn.y1, wyn.x2, wyn.y2))
+        wyn.x2 = x3;
+      else
+        wyn.x1 = x3 + 1;
+    } else {
+      int y3 = (wyn.y1 + wyn.y2) / 2;
+      if (2 * pole(wyn.x1, wyn.y1, wyn.x2, y3) >=
+          pole(wyn.x1, wyn.y1, wyn.x2, wyn.y2))
+        wyn.y2 = y3;
+      else
+        wyn.y1 = y3 + 1;
+    }
+  }
+  cout << wyn.y1 << "" "" << wyn.x1 << "" "" << wyn.y2 << "" "" << wyn.x2 << ""\n"";
+  return;
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int k, n;
+  cin >> k >> n;
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++)
+      cin >> tab[i][j];
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++) {
+      if (k <= tab[i][j] && tab[i][j] <= 2 * k) {
+        cout << j << "" "" << i << "" "" << j << "" "" << i << ""\n"";
+        return 0;
+      }
+      odl[i][j] = odl[i - 1][j] + 1;
+      if (tab[i][j] > 2 * k)
+        odl[i][j] = 0;
+      pref[i][j] =
+          tab[i][j] + pref[i - 1][j] + pref[i][j - 1] - pref[i - 1][j - 1];
+    }
+  for (int i = 1; i <= n; i++) {
+    for (int j = 1; j <= n; j++) {
+      zdejmij(i, j);
+      if ((stos.empty() || odl[i][j] != stos.top().first))
+        stos.push({odl[i][j], j});
+    }
+    zdejmij(i, n + 1);
+  }
+  if (akt_sum < k) {
+    cout << ""NIE\n"";
+    return 0;
+  }
+  devide(k);
+  return 0;
+}
+","
+  return (LL)(x2 - x1 + 1) * (y2 - y1 + 1);
+}
+
+inline void dodaj(int y, int x) {
+  while (!stos.empty() && stos.top().first >= odl[y][x]) {
+    int h1 = stos.top().first, x1 = stos.top().second;
+    stos.pop();
+    if (!stos.empty())
+      x1 = stos.top().second + 1;
+    else
+      x1 = 1;
+    akt_sum += pref[y][x] - pref[y][x1 - 1] - pref[h1 - 1][x] + pref[h1 - 1][x1 - 1];
+  }
+  stos.push({odl[y][x], x});
+",0.0,0.0,33.27195307386505,0.7186741828918457,0.12750716332378223
+27,"#include <algorithm>
+#include <bitset>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+pair<LL, LL> v1, v2;
+
+inline LL iloczyn_wektorowy(const pair<LL, LL> &a, const pair<LL, LL> &b) {","
+  return a.first * b.second - a.second * b.first;
+","}
+
+inline LL iloczyn_skalarny(const pair<LL, LL> a, const pair<LL, LL> b) {
+  return a.first * b.first + a.second * b.second;
+}
+
+struct Point {
+  int first, second, pocz_id, id, cap;
+  friend inline bool operator<(const Point &a, const Point &b) {
+    pair<int, int> w = {b.first - a.first, b.second - a.second};
+    LL IW1 = iloczyn_wektorowy(w, v1), IW2 = iloczyn_wektorowy(v2, v1);
+    LL IS = iloczyn_skalarny(w, v1);
+    if (!IW1)
+      return IS > (LL)0;
+    return (IW1 >= (LL)0) == (IW2 > (LL)0);
+  }
+};
+
+constexpr int N = 2e5 + 7, M = 1 << 18;
+Point lamps[N];
+int n, odp[N], tree[M << 1];
+vector<int> used;
+bitset<N> odw;
+
+inline void add(int a, int b) {
+  a += M - 1;
+  b += M + 1;
+  while (b - a > 1) {
+    if (!(a & 1)) {
+      tree[a + 1]++;
+      used.push_back(a + 1);
+    }
+    if (b & 1) {
+      tree[b - 1]++;
+      used.push_back(b - 1);
+    }
+    a >>= 1;
+    b >>= 1;
+  }
+}
+
+inline int read(int x) {
+  int wyn = 0;
+  x += M;
+  while (x) {
+    wyn += tree[x];
+    x >>= 1;
+  }
+  return wyn;
+}
+
+inline void zamiatanie(int p, int q, int t) {
+  for (int i = p; i <= q; i++) {
+    int w = read(lamps[i].id);
+    if (w >= lamps[i].cap || lamps[i].pocz_id + 1 <= t) {
+      odw[lamps[i].pocz_id] = 1;
+      add(lamps[i].id, n);
+    } else
+      lamps[i].cap -= w;
+  }
+  for (int i = 0; i < (int)used.size(); i++)
+    tree[used[i]] = 0;
+  used.erase(used.begin(), used.end());
+}
+
+void binsearch(int p_time, int q_time, int p_lamps, int q_lamps) {
+  if (p_time >= q_time) {
+    if (p_time == q_time)
+      for (int i = p_lamps; i <= q_lamps; i++) {
+        odp[lamps[i].pocz_id] = p_time;
+      }
+    return;
+  }
+  int s = (p_time + q_time) / 2;
+  zamiatanie(p_lamps, q_lamps, s);
+  vector<Point> na_lewo, na_prawo;
+  for (int i = p_lamps; i <= q_lamps; i++) {
+    if (odw[lamps[i].pocz_id]) {
+      na_lewo.push_back(lamps[i]);
+      odw[lamps[i].pocz_id] = 0;
+    } else
+      na_prawo.push_back(lamps[i]);
+  }
+  for (int i = 0; i < (int)na_lewo.size(); i++) {
+    odp[na_lewo[i].pocz_id] = s;
+    lamps[p_lamps + i] = na_lewo[i];
+  }
+  for (int i = 0; i < (int)na_prawo.size(); i++)
+    lamps[p_lamps + na_lewo.size() + i] = na_prawo[i];
+  int l = na_lewo.size();
+  na_lewo.erase(na_lewo.begin(), na_lewo.end());
+  na_prawo.erase(na_prawo.begin(), na_prawo.end());
+  binsearch(p_time, s, p_lamps, p_lamps + l - 1);
+  binsearch(s + 1, q_time, p_lamps + l, q_lamps);
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie();
+  cin >> n >> v1.first >> v1.second >> v2.first >> v2.second;
+  if (!iloczyn_wektorowy(v1,
+                         v2)) { // bez tego ani nic z IW ani z IS nie dzialalo
+    int w = 2e9 / max(abs(v1.first), abs(v1.second));
+    v1.first *= w;
+    v1.second *= w;
+    v1.first++;
+  }
+  for (int i = 0; i < n; i++) {
+    cin >> lamps[i].first >> lamps[i].second;
+    lamps[i].pocz_id = i;
+  }
+  for (int i = 0; i < n; i++)
+    cin >> lamps[i].cap;
+  sort(lamps, lamps + n);
+  for (int i = 1; i < n; i++) {
+    lamps[i].id = lamps[i - 1].id;
+    if (iloczyn_wektorowy({lamps[i].first - lamps[i - 1].first,
+                           lamps[i].second - lamps[i - 1].second},
+                          v1))
+      lamps[i].id = lamps[i - 1].id + 1;
+  }
+  swap(v1, v2);
+  sort(lamps, lamps + n);
+  binsearch(1, n, 0, n - 1);
+  for (int i = 0; i < n; i++)
+    cout << odp[i] << "" "";
+  return 0;
+}
+","
+  return a.first * b.second - a.second * b.first;
+",1.0,1.0,100.0,1.0,1.0
+28,"// https://codeforces.com/problemset/problem/916/E
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 1e5 + 7, M = 19, Q = (1 << M);
+LL jump_pointer[N][M], w[N], pre[N], post[N], level[N], n, preorder = 1,
+                                                          root = 1;
+LL tree[(Q << 1) + 7], tree2[(Q << 1) + 7];
+vector<LL> G[N];
+
+void dfs0(LL v, LL p) {
+  pre[v] = post[v] = preorder++;
+  jump_pointer[v][0] = p;
+  level[v] = level[p] + 1;
+  for (auto u : G[v])
+    if (u != p) {
+      dfs0(u, v);
+      post[v] = post[u];
+    }
+  return;
+}
+
+inline void push(LL v, LL s) {
+  tree[s] += tree2[v] / 2;
+  tree2[s] += tree2[v] / 2;
+  return;
+}
+
+// (+, +) tree
+inline void add(LL v, LL p, LL q, LL a, LL b, LL x) { // a, b -> our aims
+  if (q < a || b < p)
+    return;
+  if (a <= p && q <= b) {
+    tree[v] += (q - p + 1) * x;
+    tree2[v] += (q - p + 1) * x;
+  } else {
+    LL s = (p + q) / 2;
+    push(v, 2 * v);
+    push(v, 2 * v + 1);
+    tree2[v] = 0;
+
+    add(2 * v, p, s, a, b, x);
+    add(2 * v + 1, s + 1, q, a, b, x);
+    tree[v] = tree[2 * v] + tree[2 * v + 1];
+  }
+}
+
+inline LL read(LL v, LL p, LL q, LL a, LL b) { // a, b -> our aims
+  if (q < a || b < p)
+    return 0;
+  if (a <= p && q <= b)
+    return tree[v];
+  LL s = (p + q) / 2;
+  push(v, 2 * v);
+  push(v, 2 * v + 1);
+  tree2[v] = 0;
+
+  return read(2 * v, p, s, a, b) + read(2 * v + 1, s + 1, q, a, b);
+}
+
+inline LL LCA(LL a, LL b) {","
+  if (level[a] < level[b])
+    swap(a, b);
+  for (LL i = M - 1; i >= 0; i--)
+    if (level[jump_pointer[a][i]] >= level[b])
+      a = jump_pointer[a][i];
+  if (a == b)
+    return a;
+  for (LL i = M - 1; i >= 0; i--)
+    if (jump_pointer[a][i] != jump_pointer[b][i]) {
+      a = jump_pointer[a][i];
+      b = jump_pointer[b][i];
+    }
+  return jump_pointer[a][0];
+","}
+
+inline LL find_kth_vertex(LL v, LL k) {
+  for (LL i = M - 1; i >= 0; i--)
+    if (level[v] - level[jump_pointer[v][i]] <= k) {
+      k -= level[v] - level[jump_pointer[v][i]];
+      v = jump_pointer[v][i];
+    }
+  return v;
+}
+
+inline void ask_question() {
+  LL t, a;
+  cin >> t >> a;
+  if (t == 1)
+    root = a;
+  else if (t == 2) {
+    LL b, c;
+    cin >> b >> c;
+    LL v = LCA(a, b) ^ LCA(a, root) ^ LCA(root, b);
+    if (LCA(v, root) == v) {
+      add(1, 0, Q - 1, pre[1], post[1], c);
+      if (v != root) {
+        v = find_kth_vertex(root, level[root] - level[v] - 1);
+        add(1, 0, Q - 1, pre[v], post[v], -c);
+      }
+    } else
+      add(1, 0, Q - 1, pre[v], post[v], c);
+  } else {
+    LL ans, v = a;
+    if (LCA(v, root) == v) {
+      ans = read(1, 0, Q - 1, pre[1], post[1]);
+      if (v != root) {
+        v = find_kth_vertex(root, level[root] - level[v] - 1);
+        ans -= read(1, 0, Q - 1, pre[v], post[v]);
+      }
+    } else
+      ans = read(1, 0, Q - 1, pre[v], post[v]);
+    cout << ans << ""\n"";
+  }
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  LL q;
+  cin >> n >> q;
+  for (LL i = 1; i <= n; i++)
+    cin >> w[i];
+  for (LL i = 1; i < n; i++) {
+    LL a, b;
+    cin >> a >> b;
+    G[a].push_back(b);
+    G[b].push_back(a);
+  }
+  dfs0(1, 1);
+  for (LL j = 1; j < M; j++)
+    for (LL i = 1; i <= n; i++)
+      jump_pointer[i][j] = jump_pointer[jump_pointer[i][j - 1]][j - 1];
+  for (LL i = 1; i <= n; i++)
+    add(1, 0, Q - 1, pre[i], pre[i], w[i]);
+  while (q--)
+    ask_question();
+}
+
+/* 6 7
+1 4 2 8 5 7
+1 2
+3 1
+4 3
+4 5
+3 6
+3 1
+2 4 6 3
+3 4
+1 6
+2 2 4 -5
+1 4
+3 3*/
+","
+  if (level[a] < level[b])
+    swap(a, b);
+  LL ans = 0;
+  for (LL i = M - 1; i >= 0; i--)
+    if (level[a] - level[jump_pointer[a][i]] >= level[b] - level[jump_pointer[b][i]]) {
+      ans ^= jump_pointer[a][i];
+      a = jump_pointer[a][i];
+    }
+  if (a == b)
+    return ans;
+  for (LL i = M - 1; i >= 0; i--)
+    if (jump_pointer[a][i]!= jump_pointer[b][i]) {
+      ans ^= jump_pointer[a][i];
+      ans ^= jump_pointer[b][i];
+      a = jump_pointer[a][i];
+      b = jump_pointer[b][i];
+    }
+  ans ^= jump_pointer[a][0];
+  ans ^= jump_pointer[b][0];
+  return ans;
+",0.9,0.0,83.68471565364091,0.9155431985855103,0.605543710021322
+29,"// https://szkopul.edu.pl/problemset/problem/mLv0a_y18C5vj5J6jFK2gbwr/site/?key=statement
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+const LL N = 207, W = 2, INF = 2e15, D = 1e5 + 7;
+LL K[W] = {31, 29}, M[W] = {(LL)1e9 + 7, (LL)1e9 + 9};
+vector<LL> pot[W], hsh[W][N];
+string s[N];
+LL ans[N][N], cost[N][N], pom[N][N], pref[N][N], n;
+
+inline void count_hashes(int x) {
+  for (int t = 0; t < W; t++)
+    for (int i = 1; i < (int)s[x].size(); i++)
+      hsh[t][x][i] =
+          ((s[x][i] - 'a' + 1) * pot[t][i] % M[t] + hsh[t][x][i - 1]) % M[t];
+}
+
+inline LL get_hash(int t, int x, int a, int b) {
+  return (hsh[t][x][b] - hsh[t][x][a - 1] + M[t]) % M[t] * pot[t][D - a] % M[t];
+}
+
+inline bool same(int s1, int s2, int d) {
+  for (int t = 0; t < W; t++) {
+    int d1 = s[s1].size();
+    if (get_hash(t, s1, d1 - d, d1 - 1) != get_hash(t, s2, 1, d))
+      return 0;
+  }
+  return 1;
+}
+
+inline void input() {
+  pot[0].resize(D);
+  pot[1].resize(D);
+  pot[0][0] = pot[1][0] = 1;
+  for (int i = 1; i < D; i++)
+    for (int t = 0; t < W; t++)
+      pot[t][i] = pot[t][i - 1] * K[t] % M[t];
+  for (int i = 1; i <= n; i++) {
+    cin >> s[i];
+    s[i] = '^' + s[i];
+    for (int t = 0; t < W; t++)
+      hsh[t][i].resize((int)s[i].size() + 1);
+  }
+  for (int i = 1; i <= n; i++)
+    count_hashes(i);
+  for (int i = 0; i < N; i++)
+    for (int j = 0; j < N; j++)
+      pref[i][j] = cost[i][j] = INF;
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++)
+      for (int d = 0; d < min((int)s[i].size(), (int)s[j].size()); d++)
+        if ((i != j || (int)s[i].size() - 1 != d) && same(i, j, d))
+          pref[i][j] = cost[i][j] = (int)s[i].size() - d - 1;
+}
+
+inline void multiply(LL a[N][N], LL b[N][N]) {","
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++)
+      pom[i][j] = INF;
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++)
+      for (int k = 1; k <= n; k++)
+        pom[i][j] = min(pom[i][j], a[i][k] + b[k][j]);
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++)
+      a[i][j] = pom[i][j];
+","}
+
+inline void fast_powering(int k) {
+  while (k) {
+    if (k & 1)
+      multiply(ans, cost);
+    multiply(cost, cost);
+    k >>= 1;
+  }
+}
+
+inline LL find_ans() {
+  LL odp = INF;
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++)
+      odp = min(odp, ans[i][j] + (int)s[j].size() - 1);
+  return odp;
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int m;
+  cin >> n >> m;
+  input();
+  fast_powering(m - 1);
+  cout << find_ans() << ""\n"";
+  return 0;
+}
+","
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++)
+      pom[i][j] = 0;
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++)
+      for (int k = 1; k <= n; k++)
+        pom[i][j] = (pom[i][j] + a[i][k] * b[k][j]) % INF;
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++)
+      a[i][j] = pom[i][j];
+",0.75,0.0,91.89714724374099,0.9818419218063354,0.936231884057971
+30,"// https://codeforces.com/problemset/problem/1608/D
+#include <iostream>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 1e5 + 7, M = 998244353;
+LL factorial[2 * N];
+string dominoes[N];
+
+inline pair<LL, LL> extended_euclidian_algorithm(int a, int b) {
+  pair<LL, LL> coef = {a, b}, eq1 = {1, 0}, eq2 = {0, 1};
+  while (coef.second) {
+    int q = coef.first / coef.second;
+    coef = {coef.second, (coef.first - q * coef.second % M + M) % M};
+    eq1 = {eq1.second, (eq1.first - q * eq1.second % M + M) % M};
+    eq2 = {eq2.second, (eq2.first - q * eq2.second % M + M) % M};
+  }
+  return {eq1.first, eq2.first}; // return Bezout coefficients
+}
+
+inline LL inverse_modulo(int x) {","
+  return extended_euclidian_algorithm(x, M).first % M;
+","}
+
+inline int binomial(int x1, int x2) {
+  return (factorial[x1] * inverse_modulo(factorial[x2]) % M) *
+         inverse_modulo(factorial[x1 - x2]) % M;
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  factorial[0] = 1;
+  for (int i = 1; i < 2 * N; i++)
+    factorial[i] = factorial[i - 1] * i % M;
+  int n, b = 0, w = 0, un = 0;
+  bool possible_to_subtract = 1;
+  cin >> n;
+  for (int i = 0; i < n; i++) {
+    cin >> dominoes[i];
+    if (dominoes[i] == ""??"")
+      un++;
+    else if (dominoes[i][0] == dominoes[i][1])
+      possible_to_subtract = 0;
+    for (int j = 0; j < 2; j++) {
+      if (dominoes[i][j] == 'B')
+        b++;
+      if (dominoes[i][j] == 'W')
+        w++;
+    }
+  }
+  if (b > n || w > n) {
+    cout << ""0\n"";
+    return 0;
+  }
+  int ans = binomial(2 * n - b - w, n - w), act = 1;
+  for (int i = 0; i < un; i++)
+    act = act * 2ll % M;
+  int p1 = 1, p2 = 1;
+  for (int i = 0; i < n; i++) {
+    if (dominoes[i][0] == 'W' || dominoes[i][1] == 'B')
+      p1 = 0;
+    if (dominoes[i][0] == 'B' || dominoes[i][1] == 'W')
+      p2 = 0;
+  }
+  cout << (ans - possible_to_subtract * (act - p1 - p2) + M) % M << ""\n"";
+}
+
+/*
+  4
+BB
+??
+W?
+??
+*/
+","
+  return extended_euclidian_algorithm(x, M).first;
+",1.0,0.0,94.57693034303824,0.9830341339111328,0.8103448275862069
+31,"#include <bitset>
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+constexpr int N = 2e5 + 7;
+vector<int> intervals;
+bitset<N> was;
+int KMP[N], n;
+string ans;
+
+inline void count_KMP(int p, int q) {","
+  KMP[n - 1] = KMP[n] = n;
+  int k = KMP[q + 1];
+  for (int i = min(n - 2, q); i >= p; i--) {
+    while (k != n && ans[k - 1] != ans[i])
+      k = KMP[k];
+    if (ans[i] == ans[k - 1])
+      k--;
+    KMP[i] = k;
+  }
+","}
+
+inline void find_intervals() {
+  int a = 1;
+  intervals.push_back(n - 1);
+  was[n - 1] = 1;
+  while (KMP[a] != n) {
+    intervals.push_back(n - KMP[a]);
+    was[n - KMP[a]] = 1;
+    a = KMP[a];
+  }
+  for (int i = 0; i < (int)intervals.size() / 2; i++)
+    swap(intervals[i], intervals[(int)intervals.size() - 1 - i]);
+}
+
+inline bool added_intervals(int akt, int l) {
+  count_KMP(l, akt);
+  bool r = !was[ans.size() - KMP[l]];
+  return r;
+}
+
+inline void make_series() {
+  if (intervals[0] > 1)
+    ans.back() = '1';
+  count_KMP(n - intervals[0], n - 1);
+  for (int i = 1; i < (int)intervals.size(); i++) {
+    if (2 * intervals[i - 1] >= intervals[i]) {
+      int d = intervals[i] - intervals[i - 1];
+      for (int j = 1; j <= d; j++)
+        ans[n - 1 - intervals[i] + j] = ans[n - 1 - intervals[i - 1] + j];
+      continue;
+    }
+    for (int j = 0; j < intervals[i - 1]; j++)
+      ans[n - intervals[i] + j] = ans[n - intervals[i - 1] + j];
+    if (added_intervals(n - intervals[i - 1], n - intervals[i]))
+      ans[n - intervals[i - 1] - 1] = '1';
+  }
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  int k;
+  cin >> k;
+  while (k--) {
+    cin.tie();
+    cin >> ans;
+    ans = ""%"" + ans;
+    n = ans.size();
+    count_KMP(1, (int)ans.size() - 2);
+    find_intervals();
+    for (int i = 0; i < (int)ans.size(); i++)
+      ans[i] = '0';
+    make_series();
+    cout << ans.substr(1, ans.size() - 1) << ""\n"";
+    for (int i = 0; i < N; i++)
+      KMP[i] = 0;
+    intervals.erase(intervals.begin(), intervals.end());
+    ans.erase(ans.begin(), ans.end());
+    was.reset();
+  }
+  return 0;
+}
+","
+  int a = 0, b = 0;
+  while (p + b < q) {
+    if (ans[p + b] == ans[b])
+      b++;
+    else {
+      if (b == 0)
+        p++;
+      else {
+        a = b;
+        b = KMP[a];
+      }
+    }
+    KMP[p + b] = a;
+  }
+",0.0,0.0,19.14469973632405,0.8256253004074097,0.17435897435897435
+32,"// https://codeforces.com/contest/1717/problem/E
+#include <iostream>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr int M = 1e9 + 7;
+constexpr int N = 1e5 + 7;
+LL phi[N];
+bool sito[N];
+
+inline void count_phi(int n) {","
+  for (int i = 0; i <= n; i++)
+    phi[i] = i;
+  for (int i = 2; i <= n; i++)
+    if (!sito[i]) {
+      sito[i] = 1;
+      phi[i] = i - 1;
+      int x = 2;
+      while (x * i <= n) {
+        sito[x * i] = 1;
+        phi[x * i] -= phi[x * i] * (1.0 / (double)i);
+        x++;
+      }
+    }
+","}
+
+inline LL gcd(int a, int b) {
+  while (b) {
+    a %= b;
+    swap(a, b);
+  }
+  return a;
+}
+
+inline LL lcm(LL a, LL b) { return (a / gcd(a, b) * b) % M; }
+
+int main() {
+  // for(int i = 1; i <= 10; i++)
+  //	cout << phi[i] << "" "";
+  int n;
+  long long int ans = 0;
+  cin >> n;
+  count_phi(n);
+  for (int c = 1; c <= n - 2; c++)
+    for (int d = 1; d * d <= n - c; d++)
+      if ((n - c) % d == 0) {
+        ans = (ans + lcm(c, d) * phi[((n - c) / d)]) % M;
+        if (d * d != n - c && d != 1)
+          ans = (ans + lcm(c, (n - c) / d) * phi[(d)]) % M;
+      }
+  cout << ans << ""\n"";
+}
+","
+  phi[1] = 1;
+  for (int i = 2; i <= n; i++) {
+    if (!sito[i]) {
+      phi[i] = i - 1;
+      for (int j = 2 * i; j <= n; j += i) {
+        sito[j] = true;
+        phi[j] = (phi[j] / i) * (i - 1);
+      }
+    }
+  }
+",0.9,0.0,42.4131877447645,0.8087065815925598,0.44420600858369097
+33,"// https://codeforces.com/contest/1717/problem/E
+#include <iostream>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr int M = 1e9 + 7;
+constexpr int N = 1e5 + 7;
+LL phi[N];
+bool sito[N];
+
+inline void count_phi(int n) {
+  for (int i = 0; i <= n; i++)
+    phi[i] = i;
+  for (int i = 2; i <= n; i++)
+    if (!sito[i]) {
+      sito[i] = 1;
+      phi[i] = i - 1;
+      int x = 2;
+      while (x * i <= n) {
+        sito[x * i] = 1;
+        phi[x * i] -= phi[x * i] * (1.0 / (double)i);
+        x++;
+      }
+    }
+}
+
+inline LL gcd(int a, int b) {
+  while (b) {
+    a %= b;
+    swap(a, b);
+  }
+  return a;
+}
+
+inline LL lcm(LL a, LL b) {"," return (a / gcd(a, b) * b) % M; ","}
+
+int main() {
+  // for(int i = 1; i <= 10; i++)
+  //	cout << phi[i] << "" "";
+  int n;
+  long long int ans = 0;
+  cin >> n;
+  count_phi(n);
+  for (int c = 1; c <= n - 2; c++)
+    for (int d = 1; d * d <= n - c; d++)
+      if ((n - c) % d == 0) {
+        ans = (ans + lcm(c, d) * phi[((n - c) / d)]) % M;
+        if (d * d != n - c && d != 1)
+          ans = (ans + lcm(c, (n - c) / d) * phi[(d)]) % M;
+      }
+  cout << ans << ""\n"";
+}
+","
+  return a * b / gcd(a, b);
+",0.75,0.0,53.416969598755514,0.9444276690483093,0.4827586206896552
+34,"#include <iostream>
+#include <map>
+#include <queue>
+
+using namespace std;
+
+#define LSB(x) x &(-x)
+
+constexpr int N = 3e6 + 7, INF = 2e9;
+int mks[N], mn[N];
+
+inline int NextInt() {
+  int c, res = 0;
+  do {
+    c = getchar_unlocked();
+  } while (!isdigit(c));
+  while (isdigit(c)) {
+    res = res * 10 + c - '0';
+    c = getchar_unlocked();
+  }
+  return res;
+}
+
+inline void add(int v, int x) {","
+  while (v) {
+    mn[v] = min(mn[v], x);
+    mks[v] = max(mks[v], x);
+    v -= LSB(v);
+  }
+","}
+
+inline int read(int v) {
+  int mini = INF, maks = 0;
+  while (v < N) {
+    mini = min(mini, mn[v]);
+    maks = max(maks, mks[v]);
+    v += LSB(v);
+  }
+  return maks - mini;
+}
+
+int main() {
+  int t = NextInt(), n = NextInt(), p = 1, wyn = 0;
+  for (int i = 0; i <= N; i++)
+    mn[i] = INF;
+  for (int q = 1; q <= n; q++) {
+    add(q, NextInt());
+    while (read(p) > t)
+      p++;
+    wyn = max(wyn, q - p + 1);
+  }
+  cout << wyn << ""\n"";
+  return 0;
+}
+","
+  while (v < N) {
+    mn[v] = min(mn[v], x);
+    mks[v] = max(maks[v], x);
+    v += LSB(v);
+  }
+",0.75,0.0,84.06422466429959,0.9597593545913696,0.8089887640449438
+35,"#include <bitset>
+#include <iostream>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 10, C = 1680, W = 1e5;
+bitset<W> sack;
+LL A[N];
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  LL w, ans = 0;
+  cin >> w;
+  sack[0] = 1;
+  for (int i = 1; i <= 8; i++)
+    cin >> A[i];
+  for (LL i = 1; i <= 8; i++) {","
+    LL d = max(0ll, min(((w - C) / C) * C, i * (A[i] - C)));
+    ans += d;
+    w -= d;
+    A[i] -= d / i;
+  ","}
+  for (LL i = 1; i <= 8; i++) {
+    LL a = 1;
+    while (a <= A[i]) {
+      sack |= (sack << (i * a));
+      A[i] -= a;
+      a <<= 1;
+    }
+    sack |= (sack << (i * A[i]));
+  }
+  w = min(w, W - 1);
+  while (!sack[w])
+    w--;
+  cout << ans + w << ""\n"";
+  return 0;
+}
+","
+    for (LL j = 0; j <= w; j++) {
+      if (sack[j]) {
+        sack[j + i] = 1;
+        ans += j + i;
+      }
+    }
+  ",0.0,0.0,12.662686564431121,0.7330508232116699,0.14285714285714285
+36,"#include <bitset>
+#include <iostream>
+#include <queue>
+#include <vector>
+
+using namespace std;
+
+constexpr int N = 1e6 + 7, INF = 36500;
+vector<int> G[N];
+bitset<N> odw, cykl;
+unsigned short dp[N], in[N], mks = 0;
+
+inline int NextInt() {
+  int c, res = 0;
+  do {
+    c = getchar_unlocked();
+  } while (!isdigit(c));
+  while (isdigit(c)) {
+    res = res * 10 + c - '0';
+    c = getchar_unlocked();
+  }
+  return res;
+}
+
+void dfs0(int v) {
+  odw[v] = 1;
+  for (int i = 0; i < (int)G[v].size(); i++)
+    in[G[v][i]]++;
+  for (int i = 0; i < (int)G[v].size(); i++)
+    if (!odw[G[v][i]])
+      dfs0(G[v][i]);
+}
+
+inline void toposort(int n) {","
+  queue<int> kolejka;
+  for (int i = 1; i <= n + 1; i++)
+    if (!in[i] && odw[i])
+      kolejka.push(i);
+  mks = 1;
+  while (!kolejka.empty()) {
+    int v = kolejka.front();
+    kolejka.pop();
+    for (int i = 0; i < (int)G[v].size(); i++)
+      if (odw[G[v][i]]) {
+        dp[G[v][i]] = min((int)dp[G[v][i]] + (int)dp[v], INF);
+        if (dp[G[v][i]] > mks)
+          mks = dp[G[v][i]];
+        in[G[v][i]]--;
+        if (!in[G[v][i]])
+          kolejka.push(G[v][i]);
+      }
+  }
+","}
+
+inline void wypisz_wynik(int n) {
+  vector<int> wyn;
+  if (in[n + 1])
+    for (int i = 1; i <= n; i++)
+      if (odw[i])
+        dp[i] = INF;
+  for (int i = 1; i <= n; i++)
+    if (dp[i] == mks)
+      wyn.push_back(i);
+  if (mks == INF)
+    cout << ""zawsze\n"";
+  else
+    cout << mks << ""\n"";
+  cout << wyn.size() << ""\n"";
+  for (int i = 0; i < (int)wyn.size(); i++)
+    cout << wyn[i] << "" "";
+}
+
+int main() {
+  int n = NextInt(), m = NextInt();
+  for (int i = 0; i < m; i++) {
+    int a = NextInt(), b = NextInt();
+    G[b].push_back(a);
+  }
+  dfs0(n + 1);
+  dp[n + 1] = 1;
+  toposort(n);
+  for (int i = 1; i <= n + 1; i++)
+    if (in[i] && odw[i])
+      mks = dp[i] = INF;
+  wypisz_wynik(n);
+  return 0;
+}
+","
+  queue<int> q;
+  for (int i = 1; i <= n; i++)
+    if (!in[i])
+      q.push(i);
+  while (!q.empty()) {
+    int v = q.front();
+    q.pop();
+    for (int i = 0; i < (int)G[v].size(); i++) {
+      int u = G[v][i];
+      if (--in[u] == 0)
+        q.push(u);
+    }
+    if (v!= n + 1)
+      dp[v] = min(dp[v], dp[v - 1] + 1);
+  }
+",0.7,0.0,43.99891651092077,0.8888399600982666,0.45080091533180777
+37,"#include <algorithm>
+#include <iostream>
+#include <map>
+#include <vector>
+
+using namespace std;
+
+typedef __int128 LL;
+
+constexpr LL N = 1 << 20, M = 1e9 + 7;
+
+struct Vect {
+  LL x, y;
+  friend inline LL iloczyn(const Vect &a, const Vect &b) {
+    return a.x * b.y - a.y * b.x;
+  }
+  friend inline bool operator<(const Vect &a, const Vect &b) {
+    if (a.y == 0 && b.y == 0)
+      return a.x > b.x;
+    if ((a.y == 0 && a.x > 0) || (b.y == 0 && b.x > 0))
+      return a.y == 0 && a.x > 0;
+    if (a.y * b.y < 0)
+      return a.y - b.y > 0;
+    return iloczyn(a, b) > 0;
+  }
+  friend inline Vect operator+(const Vect &a, const Vect &b) {","
+    return Vect{(a.x + b.x), (a.y + b.y)};
+  ","}
+  friend inline Vect operator-(const Vect &a, const Vect &b) {
+    return Vect{(a.x - b.x), (a.y - b.y)};
+  }
+  friend inline Vect operator*(LL w, const Vect &a) {
+    return Vect{a.x * w % M, a.y * w % M};
+  }
+};
+
+vector<Vect> w;
+char Z[N];
+Vect tab[N], tree[N << 1]; // add in an index, read on a interval
+map<Vect, int> keys;
+
+inline void input(int n) {
+  int m = 0;
+  for (LL i = 0; i < n; i++) {
+    cin >> Z[i];
+    if (Z[i] != 'S') {
+      int a, b;
+      cin >> a >> b;
+      tab[i] = {a, b};
+      w.push_back(tab[i]);
+      w.push_back({-tab[i].x, -tab[i].y});
+    }
+  }
+  sort(w.begin(), w.end());
+  keys[w[0]] = ++m;
+  for (LL i = 1; i < (int)w.size(); i++)
+    if (w[i - 1] < w[i])
+      keys[w[i]] = ++m;
+}
+
+inline Vect read(int a, int b) {
+  Vect ans{0, 0};
+  a += N - 1;
+  b += N + 1;
+  while (b - a > 1) {
+    if (!(a & 1))
+      ans = ans + tree[a + 1];
+    if (b & 1)
+      ans = ans + tree[b - 1];
+    a >>= 1;
+    b >>= 1;
+  }
+  return ans;
+}
+
+inline void add(Vect x, int v) {
+  v += N;
+  while (v) {
+    tree[v] = tree[v] + x;
+    v >>= 1;
+  }
+}
+
+inline LL abs(LL x) {
+  if (x < 0)
+    return -x;
+  return x;
+}
+
+inline LL count(Vect a, Vect v1, Vect v2) {
+  return abs(iloczyn(a, v1)) % M + abs(iloczyn(a, v2)) % M;
+}
+
+inline void process(LL q) {
+  LL area = 0;
+  for (LL i = 0; i < q; i++) {
+    if (Z[i] == 'S')
+      cout << (int)area << ""\n"";
+    else {
+      Vect a = tab[i];
+      Vect p{-a.x, -a.y};
+      LL ch = 1;
+      if (Z[i] == 'D')
+        ch = -1;
+      auto ix1 = keys.find(a)->second, ix3 = keys.find(p)->second;
+      if (ix1 > ix3)
+        swap(ix1, ix3);
+      Vect s1 = read(ix1 + 1, ix3 - 1),
+           s2 = read(0, ix1 - 1) + read(ix3 + 1, N - 1);
+      area = (ch * count(a, s1, s2) % M + area + M) % M;
+      add(ch * a, keys.find({a.x, a.y})->second);
+    }
+  }
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int q;
+  cin >> q;
+  input(q);
+  process(q);
+  return 0;
+}
+","
+    return Vect{(a.x + b.x), (a.y + b.y)};
+  ",1.0,1.0,100.0,0.9999999403953552,1.0
+38,"// zadanie rozliczenia 26 OI
+#include <iostream>
+
+using namespace std;
+
+#define LSB(x) x &(-x)
+typedef long long int LL;
+constexpr int N = 1e6 + 7;
+int M, akt = 1;
+long long int tab[N];
+
+inline void add(int v, long long int x) {
+  while (v < N) {
+    tab[v] += x;
+    v += LSB(v);
+  }
+}
+
+inline long long int read(int v) {
+  long long int wyn = 0;
+  while (v) {
+    wyn += tab[v];
+    v -= LSB(v);
+  }
+  return wyn;
+}
+
+void inicjuj(int m) { M = m; }
+
+void dodaj(int k) {
+  add(akt, k - read(akt) + read(akt - 1));
+  akt = akt % M + 1;
+}
+
+void koryguj(int i, int k) { add((akt - i - 1 + M) % M + 1, k); }
+
+long long suma(int i) {","
+  long long int wyn =
+      read((akt - 2 + M) % M + 1) - read((akt - i - 2 + M) % M + 1);
+  if ((akt - 2 + M) % M + 1 <= (akt - i - 2 + M) % M + 1)
+    wyn += read(M);
+  return wyn;
+","}
+
+int main() {
+  inicjuj(3);
+  dodaj(-6);
+  cout << suma(1) << ""\n"";
+  dodaj(5);
+  koryguj(2, 10);
+  cout << suma(3) << ""\n""; // 4 5
+  cout << suma(1) << ""\n"";
+  // -6, 9, 5
+  return 0;
+}
+","
+  return read((akt - i - 1 + M) % M + 1) - read((akt - i - 2 + M) % M + 1);
+",0.5,0.0,42.13557116706758,0.8976242542266846,0.40397350993377484
+39,"#include <iostream>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 1 << 18, INF = 2e9;
+LL mn1[N << 1], mn2[N << 1], cnt[N << 1], sum[N << 1], lazy[N << 1];
+LL meals, furthest, n;
+
+inline void push(LL v, LL x) {
+  if (x <= mn1[v])
+    return;
+  sum[v] += (x - mn1[v]) * cnt[v];
+  mn1[v] = x;
+  lazy[v] = x;
+}
+
+inline void merge(LL v) {
+  LL l = 2 * v, r = l + 1;
+  sum[v] = sum[l] + sum[r];
+  if (mn1[l] == mn1[r]) {
+    mn1[v] = mn1[l];
+    cnt[v] = cnt[l] + cnt[r];
+    mn2[v] = min(mn2[l], mn2[r]);
+  } else if (mn1[l] < mn1[r]) {
+    mn1[v] = mn1[l];
+    cnt[v] = cnt[l];
+    mn2[v] = min(mn2[l], mn1[r]);
+  } else {
+    mn1[v] = mn1[r];
+    cnt[v] = cnt[r];
+    mn2[v] = min(mn1[l], mn2[r]);
+  }
+}
+
+void update(LL v, LL a, LL b, LL p, LL q, LL x) {","
+  if (b < p || q < a)
+    return;
+  if (p <= a && b <= q && x < mn2[v]) {
+    push(v, x);
+    return;
+  } else {
+    LL s = (a + b) / 2, l = 2 * v, r = l + 1;
+    push(l, lazy[v]);
+    push(r, lazy[v]);
+
+    update(l, a, s, p, q, x);
+    update(r, s + 1, b, p, q, x);
+
+    merge(v);
+  }
+","}
+
+LL read(LL v, LL a, LL b, LL p, LL q, LL left) {
+  if (b < p || q < a)
+    return 0;
+  LL s = (a + b) / 2, l = 2 * v, r = l + 1, akt = 0;
+  if (p <= a && b <= q && sum[v] <= left) {
+    furthest = b;
+    meals += max(0ll, min(n, b) - a + 1ll);
+    return sum[v];
+  }
+  push(l, lazy[v]);
+  push(r, lazy[v]);
+  if (mn1[l] <= left)
+    akt = read(l, a, s, p, q, left);
+  if (mn1[r] <= left - akt)
+    akt += read(r, s + 1, b, p, q, left - akt);
+  return akt;
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  for (LL i = 1; i < 2 * N; i++) {
+    mn2[i] = INF;
+    cnt[i] = 1;
+  }
+  LL q;
+  cin >> n >> q;
+  for (LL i = 1; i <= n; i++) {
+    LL a;
+    cin >> a;
+    update(1, 0, N - 1, i, i, a);
+  }
+  while (q--) {
+    LL t, x, y;
+    cin >> t >> x >> y;
+    if (t == 1) {
+      update(1, 0, N - 1, 1, x, y);
+    } else {
+      LL act = 0;
+      do {
+        act = read(1, 0, N - 1, x, n, y);
+        x = furthest + 1;
+        y -= act;
+      } while (act && x <= n);
+      cout << meals << ""\n"";
+      meals = 0;
+      furthest = 0;
+    }
+  }
+  return 0;
+}
+","
+  if (b < p || q < a)
+    return;
+  LL s = (a + b) / 2, l = 2 * v, r = l + 1;
+  push(l, lazy[v]);
+  push(r, lazy[v]);
+  if (p <= a && b <= q) {
+    lazy[v] = x;
+    push(l, lazy[v]);
+    push(r, lazy[v]);
+    return;
+  }
+  update(l, a, s, p, q, x);
+  update(r, s + 1, b, p, q, x);
+  merge(v);
+",0.7,0.0,81.13439831740766,0.9256223440170288,0.7952029520295203
+40,"#include <algorithm>
+#include <bitset>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 1e7, M = 1e13, W = 1e6;
+bitset<N + 7> sieve, lamp;
+vector<LL> good, prime, seed;
+pair<LL, LL> q[W + 7];
+LL ans[W + 7];
+
+inline void check(LL x) {
+  LL pot = 10;
+  while (pot * 10 <= x) {
+    if ((x / pot) % 10ll == 0)
+      return;
+    pot *= 10ll;
+  }
+  while (pot >= 10ll) {
+    if (sieve[x % pot])
+      return;
+    pot /= 10ll;
+  }
+  lamp[x] = 1;
+  if (x * 10ll < N)
+    good.push_back(x);
+  else
+    seed.push_back(x);
+  return;
+}
+
+inline void count_sieve() {
+  sieve[0] = sieve[1] = 1;
+  for (LL i = 2; i <= N; i++)
+    if (!sieve[i]) {
+      prime.push_back(i);
+      check(i);
+      for (LL j = i * i; j <= N; j += i)
+        sieve[j] = 1;
+    }
+}
+
+inline bool is_prime(LL x) {","
+  LL i = 1;
+  while (prime[i] * prime[i] <= x) {
+    if (x % prime[i] == 0)
+      return 0;
+    i++;
+  }
+  return 1;
+","}
+
+inline void bfs() {
+  LL lev = N;
+  sort(seed.begin(), seed.end(), greater<LL>());
+  vector<LL> seed1;
+  while (lev != M) {
+    for (auto x : seed)
+      for (LL i = 1; i <= 9; i++)
+        if (is_prime(i * lev + x))
+          seed1.push_back(i * lev + x);
+    sort(seed1.begin(), seed1.end(), greater<LL>());
+    while (!seed.empty()) {
+      good.push_back(seed.back());
+      seed.pop_back();
+    }
+    seed = seed1;
+    seed1.erase(seed1.begin(), seed1.end());
+    lev = lev * 10ll;
+  }
+  while (!seed.empty()) {
+    good.push_back(seed.back());
+    seed.pop_back();
+  }
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  count_sieve();
+  bfs();
+  // cout << good.size() << ""\n"";
+  // for(LL i = 0; i <= 100; i++)
+  //	cout << good[i] << ""\n"";
+  LL n, l = 0;
+  cin >> n;
+  for (LL i = 0; i < n; i++) {
+    LL a;
+    cin >> a;
+    q[i] = {a, i};
+  }
+  sort(q, q + n);
+  sort(good.begin(), good.end());
+  for (LL i = 0; i < n; i++) {
+    while (l < (LL)good.size() && good[l] <= q[i].first)
+      l++;
+    ans[q[i].second] = good[l - 1];
+  }
+  for (LL i = 0; i < n; i++)
+    cout << ans[i] << ""\n"";
+}
+","
+  for (auto x : prime)
+    if (x * x > x)
+      if (x > x)
+        if (x > x)
+          if (x > x)
+            if (x > x)
+              if (x > x)
+                if (x > x)
+                  if (x > x)
+                    if (x > x)
+                      if (x > x)
+                        if (x > x)
+                          if (x > x)
+                            if (x > x)
+                              if (x > x)
+                                if (x > x)
+                                  if (x > x)
+                                    if (x > x)
+                                      if (x > x)
+                                        if (x > x)
+                                          if (x > x)
+                                            if (x > x)
+                                              if (x > x)
+                                                if (x > x)
+                                                  if (x > x)
+                                                    if (x > x)
+                                                      if (x > x)
+                                                        if (x > x)
+                                                          if (x > x)
+                                                            if (x > x)
+                                                              if (x > x)
+                                                                if (x > x)
+                                                                  if (x > x)
+                                                                    if (x > x)
+                                                                      if (x > x)
+                                                                        if (x > x)
+                                                                          if (x > x)
+                                                                            if (x > x)
+                                                                              if (x > x)
+                                                                                if (x > x)
+                                                                                  if (x > x)
+                                                                                    if (x > x)
+                                                                                      if (x > x)
+                                                                                        if (x > x)
+                                                                                          if (x > x)
+                                                                                            if (x > x)
+                                                                                              if (x > x)
+                                                                                                if (x > x)
+                                                                                                  if (x > x)
+                                                                                                    if (x > x)
+                                                                                                      if (x > x)
+                                                                                                        if (x > x)
+                                                                                                          if (x > x)
+                                                                                                            if (x > x)
+                                                                                                              if (x > x)
+                                                                                                                if (x > x)
+                                                                                                                  if (x > x)
+                                                                                                                    if (x > x)
+                                                                                                                      if (x > x)
+                                                                                                                        if (x > x)
+                                                                                                                          if (x > x)
+                                                                                                                            if (x > x)
+                                                                                                                              if (x > x)
+                                                                                                                                if (x > x)
+                                                                                                                                  if (x > x)
+                                                                                                                                   ",0.0,0.0,4.665165120986849,0.5975059270858765,0.008301404853128991
+41,"#include <bitset>
+#include <iostream>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 5e3 + 7, M = 8200;
+int MEX[N][N], tab[N];
+bitset<M> dp[N];
+bitset<N> exist;
+
+inline void calculate_mex(int n) {","
+  for (int i = 1; i <= n; i++) {
+    exist.reset();
+    int lim = 0;
+    for (int j = i; j <= n; j++) {
+      exist[tab[j]] = 1;
+      while (lim < N && exist[lim])
+        lim++;
+      MEX[i][j] = lim;
+    }
+  }
+","}
+
+bool is_irreplacable(int l, int r) {
+  if (l == r)
+    return 1;
+  return MEX[l][r] != MEX[l + 1][r] && MEX[l][r] != MEX[l][r - 1];
+}
+
+inline void calculate_dp(int n) {
+  dp[0][0] = 1;
+  for (int i = 1; i <= n; i++) {
+    dp[i] = dp[i - 1];
+    for (int j = 1; j <= i; j++)
+      if (is_irreplacable(j, i))
+        for (int xr = 0; xr < M; xr++)
+          if (dp[j - 1][xr])
+            dp[i][xr ^ MEX[j][i]] = 1;
+  }
+}
+
+inline void solve() {
+  int n;
+  cin >> n;
+  for (int i = 1; i <= n; i++)
+    cin >> tab[i];
+  calculate_mex(n);
+  calculate_dp(n);
+  for (int i = M; i >= 0; i--)
+    if (dp[n][i]) {
+      cout << i << ""\n"";
+      return;
+    }
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  LL t;
+  cin >> t;
+  while (t--)
+    solve();
+  return 0;
+}
+","
+  for (int i = 1; i <= n; i++)
+    for (int j = i; j <= n; j++) {
+      int mex = 0;
+      while (exist[mex])
+        mex++;
+      MEX[i][j] = mex;
+      exist[mex] = 1;
+    }
+",0.0,0.0,53.59085685178952,0.9214004278182983,0.588957055214724
+42,"#include <algorithm>
+#include <iostream>
+#include <set>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 5e5, W = 2, A = 27;
+LL M[W] = {(LL)1e9 + 9, (LL)1e9 + 7}, K[W] = {31, 53};
+
+struct Hash {
+  LL w1, w2;
+  int dl, ix;
+  friend inline bool operator<(const Hash &a, const Hash &b) {
+    if (a.dl != b.dl)
+      return a.dl < b.dl;
+    if (a.w1 != b.w1)
+      return a.w1 < b.w1;
+    return a.w2 < b.w2;
+  }
+};
+
+struct TrieNode {
+  TrieNode *alfa[A];
+  TrieNode() {
+    for (int i = 0; i < A; i++)
+      alfa[i] = NULL;
+  }
+  inline TrieNode *push(char z) {","
+    int w = z - 'a';
+    if (alfa[w] == NULL)
+      alfa[w] = new TrieNode();
+    return alfa[w];
+  ","}
+  friend inline void insert_word(TrieNode *current, string s) {
+    for (auto c : s)
+      current = current->push(c);
+  }
+};
+
+vector<string> zb;
+LL pot[2][N + 7];
+vector<Hash> words, suf;
+vector<int> cnt;
+TrieNode trie;
+set<char> c;
+
+LL traverse(TrieNode *v, bool emp) {
+  LL ans = 0, act = suf.size();
+  for (int i = 0; i < A; i++)
+    if (v->alfa[i] != NULL)
+      act -= cnt[i];
+  for (int i = 0; i < A; i++)
+    if (v->alfa[i] != NULL)
+      ans += traverse(v->alfa[i], 0);
+  return ans + act * (!emp);
+}
+
+inline void count_hash(string s, int ix) {
+  LL hsh[2] = {0, 0};
+  int t = s.size() - 1;
+  for (int i = s.size() - 1; i >= 0; i--) {
+    for (int j = 0; j < 2; j++)
+      hsh[j] = ((LL)(s[i] - 'a' + 1) * pot[j][t - i] % M[j] + hsh[j]) % M[j];
+    words.push_back(Hash{hsh[0], hsh[1], t - i, ix});
+  }
+}
+
+inline void input(int n) {
+  zb.resize(n);
+  for (int i = 0; i < n; i++)
+    cin >> zb[i];
+  for (int i = 0; i < n; i++)
+    if (zb[i].size() == 1)
+      c.insert(zb[i][0]);
+  pot[0][0] = pot[1][0] = 1;
+  for (int i = 1; i <= N; i++)
+    for (int j = 0; j < 2; j++)
+      pot[j][i] = pot[j][i - 1] * K[j] % M[j];
+  int ix = 0;
+  for (string s : zb)
+    count_hash(s, ix++);
+  sort(words.begin(), words.end());
+  suf.push_back(words.front());
+  for (Hash h : words)
+    if (suf.back() < h)
+      suf.push_back(h);
+}
+
+inline LL count_words() {
+  cnt.resize(A, 0);
+  for (Hash h : suf)
+    if (h.dl)
+      cnt[zb[h.ix][zb[h.ix].size() - h.dl - 1] - 'a']++;
+  for (auto s : zb)
+    insert_word(&trie, s);
+  return traverse(&trie, 1);
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int n;
+  cin >> n;
+  input(n); // now we have a vector of different prefixes and sufixes
+  cout << count_words() + c.size() << ""\n"";
+  return 0;
+}
+","
+    if (alfa[z - 'a'] == NULL)
+      alfa[z - 'a'] = new TrieNode();
+    return alfa[z - 'a'];
+  ",1.0,0.0,70.22158122742991,0.9091510772705078,0.5952380952380952
+43,"// https://szkopul.edu.pl/problemset/problem/PUVCH73E4h3hU8UPiJqvvLmQ/site/?key=statement
+#include <bitset>
+#include <iostream>
+#include <queue>
+#include <vector>
+
+using namespace std;
+
+constexpr short N = 5007, M = 19e3;
+vector<short> Q[N], G[M], in[M], out[M];
+bitset<M> odw;
+queue<short> kol;
+short matched[M];
+
+bool dfs1(short v) {
+  odw[v] = 1;
+  for (auto w : G[v])
+    if (!odw[w] && !matched[w]) {
+      matched[w] = v;
+      matched[v] = w;
+      return 1;
+    }
+  for (auto w : G[v])
+    if (!odw[matched[w]] && dfs1(matched[w])) {
+      matched[w] = v;
+      matched[v] = w;
+      return 1;
+    }
+  return 0;
+}
+
+void dfs2(short v) {
+  odw[v] = 1;
+  for (auto w : G[v])
+    if (!odw[w])
+      dfs2(w);
+}
+
+inline void change(short i, short j) {
+  G[i].erase(G[i].begin(), G[i].end());
+  G[i].push_back(j);
+  if (matched[i])
+    G[i].push_back(matched[i]);
+}
+
+inline void turbo_matching(short n) {","
+  while (true) {
+    bool cont = 0;
+    for (short i = 1; i <= n; i++)
+      if (!odw[i] && !matched[i])
+        cont |= dfs1(i);
+    odw.reset();
+    if (!cont)
+      break;
+  }
+","}
+
+inline void bfs(short s, short m) {
+  kol.push(s);
+  while (!kol.empty()) {
+    short v = kol.front();
+    kol.pop();
+    for (auto e1 : in[s])
+      for (auto e2 : out[v])
+        if (e1 != e2) {
+          G[e1].push_back(e2 + m);
+          G[e2 + m].push_back(e1);
+        }
+    for (auto w : Q[v])
+      if (!odw[w]) {
+        odw[w] = 1;
+        kol.push(w);
+      }
+  }
+  odw.reset();
+}
+
+inline void create_graph(short n, short m) {
+  for (short v = n; v; v--)
+    bfs(v, m);
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  short n, m = 0, ans = 0, l = 1;
+  cin >> n;
+  for (short i = 1; i < n; i++) {
+    short k;
+    cin >> k;
+    m += k;
+    while (k--) {
+      short a;
+      cin >> a;
+      Q[i].push_back(a);
+      out[i].push_back(l);
+      in[a].push_back(l++);
+    }
+  }
+  create_graph(n, m);
+  turbo_matching(m);
+  for (short i = 1; i <= m; i++) {
+    change(i, m + i);
+    change(m + i, i);
+  }
+  for (short i = 1; i <= m; i++)
+    if (!odw[i]) {
+      dfs2(i);
+      ans++;
+    }
+  cout << ans << ""\n"";
+  return 0;
+}
+","
+  for (short i = 1; i <= n; i++)
+    if (!odw[i])
+      dfs1(i);
+",0.0,0.0,37.684240780331145,0.917432963848114,0.42276422764227645
+44,"// https://codeforces.com/contest/915/problem/G
+#include <bitset>
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef long long int LL;
+
+constexpr LL N = 2e6 + 7, M = 1e9 + 7;
+LL mobius_function[N];
+LL cd[N], sum, powers[N]; // sum of common ways to chose numbers so that their
+                          // common divisors == i
+vector<int> divisors[N];
+bitset<N> sieve;
+
+inline void count_mobius_function(LL n) {","
+  for (LL i = 2; i <= n; i++)
+    mobius_function[i] = -1;
+  for (LL i = 2; i <= n; i++)
+    if (!sieve[i]) {
+      LL x = 1;
+      while (i * i * x <= n)
+        mobius_function[i * i * (x++)] = 0;
+      x = 1;
+      while (i * x <= n)
+        mobius_function[i * (x++)] *= -1;
+    }
+  for (int i = 2; i <= n; i++)
+    if (mobius_function[i])
+      for (int j = i; j <= n; j += i)
+        divisors[j].push_back(i);
+","}
+
+inline void sieve_of_erastothenes(LL n) {
+  for (LL i = 2; i <= n; i++)
+    if (!sieve[i])
+      for (int j = 2 * i; j <= n; j += i)
+        sieve[j] = 1;
+}
+
+inline LL fast_powering(LL x, LL k) {
+  LL ans = 1;
+  while (k) {
+    if (k & 1)
+      ans = ans * x % M;
+    x = x * x % M;
+    k >>= 1;
+  }
+  return ans;
+}
+
+inline void actualise_cd(LL K) {
+  for (auto x : divisors[K]) {
+    LL akt = mobius_function[x] * (powers[K / x] - powers[(K - 1) / x] + M) % M;
+    sum = (sum + akt) % M;
+  }
+}
+
+inline LL count_ans(LL x) {
+  LL ans = powers[x];
+  actualise_cd(x);
+  return (ans - sum + M) % M;
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  LL n, k, ans = 0;
+  cin >> n >> k;
+  for (int i = 1; i <= k; i++)
+    powers[i] = fast_powering(i, n);
+  sieve_of_erastothenes(k);
+  count_mobius_function(k);
+  for (LL i = 1; i <= k; i++)
+    // cout << count_ans(i) << "" "";
+    ans = (ans + (i ^ count_ans(i))) % M;
+  cout << ans << ""\n"";
+  return 0;
+}
+","
+  for (LL i = 1; i <= n; i++) {
+    if (sieve[i])
+      continue;
+    mobius_function[i] = -1;
+    for (LL j = i; j <= n; j += i) {
+      if (!sieve[j])
+        mobius_function[j] = -mobius_function[j];
+      sieve[j] = 1;
+      divisors[j].push_back(i);
+    }
+  }
+",0.5,0.0,49.62066360386533,0.8727555871009827,0.3821752265861027
